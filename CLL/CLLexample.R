@@ -46,3 +46,5 @@ print(resultList[[1]])
 outdir <- as.character(Sys.Date())
 if(!dir.exists(outdir)) dir.create(outdir)
 save(resultList, file=file.path(outdir, "result_CLL.RData"))
+
+print(sessionInfo())

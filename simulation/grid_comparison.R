@@ -101,3 +101,5 @@ print(res[[1]])
 outdir <- paste0("all_",as.character(Sys.Date()))
 if(!dir.exists(outdir)) dir.create(outdir)
 save(res, file=file.path(outdir, paste0(nm, ".RData")))
+
+print(sessionInfo())
