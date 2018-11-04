@@ -1,0 +1,143 @@
+---
+title: "Figures for results from grid simulation"
+author: "Britta Velten"
+date: "13/07/2018"
+output: BiocStyle::html_document
+---
+
+```{r}
+library(tidyverse)
+library(magrittr)
+library(wesanderson)
+source("../util_defs.R")
+```
+
+
+# Perparations
+Set input/output paths.
+```{r}
+datadir <- "data"
+outdir <- "2018-10-22"
+knitr::opts_chunk$set(fig.path = "figs/", dev = c('png',"pdf"))
+```
+
+Load grid parameters
+```{r}
+load(file.path(datadir, "grid.RData"))
+# number of settings
+nrow(grid)
+```
+
+
+# Load models
+```{r load}
+files <- list.files(outdir)
+files <- files[grepl(".RData", files)]
+res_all <- lapply(files, function(fnm){
+  # load fits
+  load(file.path(outdir,fnm))
+  # add parameter info
+  params <- strsplit(fnm,"_")[[1]]
+  res$n <- as.numeric(sub("n","",params[1]))
+  res$p <- as.numeric(sub("p","",params[2]))
+  res$g <- as.numeric(sub(".RData","",(sub("g","",params[3]))))
+  res
+}) %>% bind_rows()
+
+# base parameters
+getBaseParam <- function(param){
+  as.numeric(names(table(grid[[param]]))[which.max(table(grid[[param]]))])
+}
+n_base <- getBaseParam("n")
+p_base <- getBaseParam("p")
+g_base <- getBaseParam("g")
+```
+
+# Runtimes
+```{r}
+methods_time <- c("grpRR_SS", "Lasso", "IPFLasso", "SparseGroupLasso",
+                  "varbvs", "grpRR_FF", "grpRR", "GRridge")
+
+df_time <- res_all %>% 
+  filter(method %in% methods_time) %>%
+  mutate(method = make_nicenames(method))
+```
+
+```{r time, fig.width=11, fig.height= 3, eval = FALSE, echo=FALSE}
+ggtime_n <- df_time %>%
+  filter(p==p_base, g == g_base) %>%
+  ggplot(aes(x=n, y=runtime/60, col=method)) +
+  # geom_smooth(method="loess",method.args = list(degree=0, span=10), se=FALSE) +
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
+  stat_summary(fun.y = mean, geom = "line") +
+  ylab("time [min]") +
+  # scale_x_continuous(breaks = seq(0,1000,200)) +
+  scale_y_log10()+
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods) +
+  theme(axis.title.y = element_blank())
+
+ggtime_p <- df_time %>%
+  filter(n==n_base, g == g_base) %>%
+  ggplot(aes(x=p, y=runtime/60, col=method)) +
+  # geom_smooth(method="loess",method.args = list(degree=0, span=10), se=FALSE) +
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
+  stat_summary(fun.y = mean, geom = "line")  +
+  ylab("time [min]")+ scale_y_log10() +
+  scale_x_continuous(breaks = c(1000,3000,5000)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods)
+
+ggtime_g <- df_time %>%
+  filter(n==n_base, p == p_base) %>%
+  ggplot(aes(x=g, y=runtime/60, col=method)) +
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
+  # geom_smooth(method="loess",method.args = list(degree=0, span=10), se=FALSE) +
+  stat_summary(fun.y = mean, geom = "line")  +
+  ylab("time [min]")+ scale_y_log10()+ xlab("G") + 
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods)+
+  theme(axis.title.y = element_blank())
+
+gg_legend <- get_legend(ggtime_n)
+
+cowplot::plot_grid(ggtime_p + guides(col=FALSE), ggtime_n  + guides(col=FALSE),
+                   ggtime_g  + guides(col=FALSE),
+                   gg_legend, ncol=4, rel_widths = c(1.1,1,1,0.9))
+```
+
+```{r time_joint, fig.width=10, fig.height=3}
+df_time %<>% mutate(vary_param = ifelse(n==n_base, ifelse(p == p_base, "G","p"), "n"))
+df_time %<>% mutate(value = ifelse(vary_param == "n", n, ifelse(vary_param=="p", p, g)))
+df_time %<>% mutate(vary_param = factor(vary_param, levels = c("p", "n", "G")))
+
+df_time %>%
+  ggplot(aes(x=value, y=runtime/60, col=method)) +
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
+  # geom_smooth(method="loess",method.args = list(degree=0, span=10), se=FALSE) +
+  stat_summary(fun.y = mean, geom = "line")  +
+  facet_wrap(~vary_param, scales = "free_x",strip.position = "bottom") +
+  ylab("time [min]")+ scale_y_log10()+ 
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods) +
+  xlab("") +
+  theme(strip.background = element_blank(), strip.placement = "outside") +
+  scale_x_continuous(breaks=scales::pretty_breaks(3))
+```
+
+```{r time_noIPF, fig.width=10, fig.height=3, eval = FALSE, echo = FALSE}
+# Withou IPF-Lasso and linear axis
+df_time %>% filter(method != "IPF-Lasso") %>%
+  ggplot(aes(x=value, y=runtime/60, col=method)) +
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
+  # geom_smooth(method="loess",method.args = list(degree=0, span=10), se=FALSE) +
+  stat_summary(fun.y = mean, geom = "line")  +
+  facet_wrap(~vary_param, scales = "free_x",strip.position = "bottom") +
+  ylab("time [min]")+ 
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods) +
+  xlab("") +
+  theme(strip.background = element_blank(), strip.placement = "outside") +
+  scale_x_continuous(breaks=scales::pretty_breaks(3))
+```
+
+# SessionInfo
+```{r}
+sessionInfo()
+```
+

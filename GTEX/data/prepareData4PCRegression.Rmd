@@ -1,0 +1,155 @@
+---
+title: "Prepare GTEx data for a regression model"
+author: "Britta Velten"
+date: "8/11/2017"
+output:
+  BiocStyle::html_document:
+    toc: true
+---
+
+```{r, message=FALSE, warning=FALSE}
+library(data.table)
+library('recount')
+library(DESeq2)
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+library(plyr)
+library(reshape2)
+options(stringsAsFactors = FALSE)
+filter <- dplyr::filter
+```
+
+
+# Load data
+Data obtained in script preprocessData.R:
+```{r}
+# adapt to the data directory used in getData.Rmd and preprocess data
+datadir <- "."
+load(file.path(datadir, "dds_vst.RData"))
+cdat <- as.data.frame(colData(dds_vst))
+```
+
+```{r, eval=F, echo=FALSE}
+#some visual checks
+vsn::meanSdPlot(assay(dds_vst))
+load(file.path(datadir, "dds.RData"))
+vsn::meanSdPlot(assay(dds))
+geneplotter::multiecdf(counts(dds)[,1:20], xlim=c(0,2000))
+geneplotter::multiecdf(counts(dds, normalized=T)[,1:20], xlim=c(0,2000))
+geneplotter::multiecdf(assay(dds_vst)[,1:20], xlim=c(5,20))
+```
+
+# Choose complete data subset
+Explore for which donor which tissue are available.
+```{r}
+donor_vs_tissue <- acast(cdat, subject_id ~ smts,
+                         fun.aggregate=length, value.var = "sample")
+is_present <- 1*(donor_vs_tissue>0)
+is_present <- is_present[order(rowCounts(is_present), decreasing = TRUE),
+                         order(colCounts(is_present), decreasing = TRUE)]
+pheatmap::pheatmap(is_present, cluster_rows = FALSE,
+                   cluster_cols = FALSE, show_rownames=FALSE)
+
+donor_tissue <- cdat %>%
+  group_by(subject_id,smts) %>%
+  dplyr::summarise(n_samples=length(sample)) 
+ggplot(donor_tissue, aes(x=subject_id, y=smts, fill=as.factor(n_samples))) +
+  geom_tile() +theme(axis.text.x = element_blank())
+```
+
+Choose a complete subset in a greedy stepwise fashion.
+```{r, echo=FALSE}
+subset_by_donor_tissue <- function(n_tissue){
+  is_present_sub <- is_present
+    for(i in 1:n_tissue){
+    include <- is_present_sub[,i]==1
+    is_present_sub <- is_present_sub[include,]
+    is_present_sub <- is_present_sub[,order(colCounts(is_present), decreasing = T)]
+    }
+  is_present_sub <- is_present_sub[,1:n_tissue]
+}
+```
+
+```{r}
+# find a good number of tissues to use
+tissue_donor_numbers <- lapply(2:20, function(n_tissue){
+is_present_sub <- subset_by_donor_tissue(n_tissue)
+data.frame(tissues= ncol(is_present_sub), donors=nrow(is_present_sub))
+}) %>% bind_rows()
+ggplot(tissue_donor_numbers, aes( x= tissues, y=donors)) +
+  geom_line() +
+  geom_vline(aes(xintercept=5), col="red")
+
+#choose donors for the 5 tissues
+n_tissue <- 5
+is_present_sub <- subset_by_donor_tissue(n_tissue)
+dim(is_present_sub)
+tissues2include <- colnames(is_present_sub)
+donors2include <-rownames(is_present_sub)
+tissues2include
+
+length(donors2include)
+length(tissues2include)
+```
+
+Subset RNAseq data to selected tissues and donors. 
+In case multiple samples are present choose one at random.
+```{r}
+cdat_sub <- filter(cdat, subject_id %in% donors2include, smts %in% tissues2include)
+cdat_sub_gr <- group_by(cdat_sub, subject_id, smts) %>%    dplyr::summarise(sel_samples=sample(sample,1)) 
+bool_selected <- colData(dds_vst)$sample %in% cdat_sub_gr$sel_samples
+cdat_sub <- filter(cdat, sample %in% cdat_sub_gr$sel_samples)
+
+dds_vst_sub <- dds_vst[,bool_selected]
+mat_vst <- assay(dds_vst_sub)
+colnames(mat_vst) <- colData(dds_vst_sub)$sample
+```
+
+Make design matrices by tissue with matched samples and genes.
+```{r}
+tissueWList <- lapply(unique(cdat_sub$smts), function(tissue){
+  cdat_tissue <- filter(cdat_sub, smts==tissue)
+  cdat_tissue <- cdat_tissue[order(cdat_tissue$subject_id),]
+  mat_tissue <- mat_vst[,cdat_tissue$sample]
+  colnames(mat_tissue) <- cdat_tissue$subject_id
+  t(mat_tissue)
+})
+names(tissueWList) <- unique(cdat_sub$smts)
+sapply(tissueWList, dim)
+
+ageDF <- cdat_sub %>% group_by(subject_id) %>% dplyr::summarise(donor=unique(subject_id),age=unique(AGE))
+age <- ageDF$age
+names(age) <- ageDF$donor
+age <- age[order(names(age))]
+```
+
+Checks
+```{r}
+stopifnot(all(apply(sapply(tissueWList, colnames),1,function(s) length(unique(s))==1)))
+stopifnot(all(apply(sapply(tissueWList, rownames),1,function(s) length(unique(s))==1)))
+stopifnot(all(rownames(tissueWList[[1]])==names(age)))
+```
+
+Reduce dimensions by PCA per tissue
+```{r}
+PCs <- lapply(tissueWList, function(x){
+  prcomp(x)$x[,1:50]
+})
+```
+
+
+# Make design matrix and response
+```{r}
+X <- do.call(cbind, PCs)
+dim(X)
+annot <- rep(names(PCs), sapply(PCs, ncol))
+y <- age
+all(rownames(X)==names(y))
+
+dataGTEx <- list(X=X, annot=annot, y=y)
+save(dataGTEx, file= file.path(datadir, "dataGTEx_t5_PCs.RData"))
+```
+
+
+

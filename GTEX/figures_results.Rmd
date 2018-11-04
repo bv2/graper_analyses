@@ -1,0 +1,163 @@
+---
+title: "GTEx example: predicting age using gene expression data from 5 tissues"
+author: "Britta Velten"
+date: "13/07/2018"
+output:
+  BiocStyle::html_document:
+    toc: true
+---
+
+```{r, message=FALSE, warning=FALSE}
+library(data.table)
+library(DESeq2)
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+library(plyr)
+library(cowplot)
+library(reshape2)
+options(stringsAsFactors = FALSE)
+library(grpRR)
+library(tidyverse)
+library("wesanderson")
+library(ggbeeswarm)
+source("../util_defs.R") # contains color schemes and methods to include
+```
+
+# Perparations
+Set input/output paths.
+```{r}
+datadir <- "data"
+outdir <- "2018-07-27"
+knitr::opts_chunk$set(fig.path = "figs/", dev = c('png',"pdf"))
+```
+
+Load data used for fitting.
+```{r}
+load(file.path(datadir, "dataGTEx_t5_union_hvg_small.RData"))
+dim(dataGTEx$X)
+```
+
+Load summarised results.
+```{r}
+load(file.path(outdir,"result_GTEx.RData"))
+```
+
+Colors for tissues
+```{r}
+cols4groups <- c(wes_palette("GrandBudapest1"),
+                 wes_palette("GrandBudapest2")[1])
+names(cols4groups) <- unique(dataGTEx$annot)
+```
+
+# Make plots
+## RMSE
+Compare prediciton performance between the methods in terms of root mean squared error.
+```{r RMSE, fig.widht=8, fig.height=6}
+df_RMSE <- melt(sapply(resultList, function(l) l$RMSE),
+                varnames = c("method", "run"), value.name="RMSE")
+df_RMSE %<>% mutate(method = make_nicenames(method))
+df_RMSE %<>% mutate(method_type = ifelse(method%in% methods2compare_sparse,
+                                         "sparse", "dense"))  
+df_RMSE %<>% filter(method %in% methods2compare_sparse |
+                      method %in% methods2compare_dense) 
+
+# make plot 
+ggplot(df_RMSE, aes(x=method, y=RMSE, fill=method)) +
+  geom_boxplot(alpha=0.5) + 
+  # ggtitle ("Prediction of donors' age")  +
+  geom_point() + facet_wrap(~method_type, scale="free_x") +
+  scale_fill_manual(values = cols4methods) +
+  theme(axis.text.x = element_text(angle=60, vjust=1, hjust=1),
+        axis.title.x = element_blank())
+```
+
+## Penalty Factors (in grpRR and related methods)
+```{r hyperparameters_all, fig.width=12, fig.height=12}
+methods4comp <- c("grpRR","grpRR_SS","grpRR_FF", "IPFLasso", "GRridge")
+df_pf <- melt(lapply(resultList, function(l) {
+  nms <- rownames(l$pf_mat)
+  m <- matrix(as.numeric(l$pf_mat[, methods4comp, drop=F]), ncol=length(methods4comp))
+  colnames(m) <- methods4comp
+  rownames(m) <- nms
+  m
+  }),varnames = c("tissue", "method"))
+
+# nice method and tissue names
+df_pf %<>% mutate(method=make_nicenames(method))
+df_pf %<>% mutate(xtissue=ifelse(tissue == "Adipose Tissue", "Adipose\n Tissue",
+                                ifelse(tissue == "Blood Vessel", "Blood\n Vessel", as.character(tissue))))
+
+gg1 <- ggplot(df_pf,aes(x=xtissue, y=value)) + geom_boxplot() + ylab(expression(hat(gamma))) + xlab("tissue") +
+  geom_beeswarm(aes(col=tissue), groupOnX =TRUE) +
+  facet_wrap(~method, ncol=2) + theme(axis.text.x = element_blank()) +
+  theme_bw(base_size = 18) + scale_color_manual(values = cols4groups) #+
+  # theme(axis.text.x = element_text(angle=60, vjust=1, hjust=1))
+
+gg1
+```
+
+
+```{r hyperparameters, fig.width=12, fig.height=4, eval = FALSE, echo = FALSE}
+## Penalty Factors and sparsity level (only in sparse grpRR)
+df_pf <- melt(lapply(resultList, function(l) l$pf_mat[, "grpRR_SS", drop=F]),
+              varnames = c("tissue", "method"))
+df_pf$value <- as.numeric(df_pf$value)
+
+gg1 <- ggplot(df_pf,aes(x=tissue, y=value)) + geom_boxplot() +
+  ylab(expression(hat(gamma))) + geom_beeswarm(aes(col=tissue))+
+  guides(col=FALSE) + xlab("tissue type") + 
+  ggtitle ("Group-wise shrinkage") + theme_bw(base_size = 15) +
+  scale_color_manual(values = cols4groups)
+
+df_pf <- melt(lapply(resultList, function(l) l$sparsity_mat[, "grpRR_SS", drop=F]),
+              varnames = c("tissue", "method"))
+gg2 <- ggplot(df_pf,aes(x=tissue, y=value)) + geom_boxplot() +
+  ylab(expression(hat(pi))) + geom_beeswarm(aes(col=tissue))+
+  xlab("tissue type") + ggtitle ("Percentage of active features")  +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
+
+plot_grid(gg1,gg2, rel_widths = c(1,1.5), nrow=1, align = "hv", axis = "lb")
+```
+
+```{r, eval=FALSE, echo= FALSE}
+# Investigate correlation of genes within each tissues
+tissueList <- lapply(unique(dataGTEx$annot), function(g){ 
+  dataGTEx$X[,dataGTEx$annot==g]
+})
+names(tissueList) <- unique(dataGTEx$annot)
+corList <- lapply(tissueList, cor)
+mcor <- sapply(corList, function(c) mean(as.numeric(abs(c))))
+
+# plot mean penalty factor across folds vs correlation
+mpf <- df_pf %>% group_by(tissue) %>% dplyr::summarize(mpf = mean(value))
+mpf$mcor <- mcor[mpf$tissue]
+ggplot(mpf, aes(x=mcor, y=mpf, col=tissue)) + geom_point()
+```
+
+## Runtime
+```{r time}
+time_mat <- sapply(resultList, function(l) l$runtime)
+df_time <- melt(time_mat,
+                varname=c("method", "fold"), value.name="time")
+
+# only compare to a single iteration for each method (fitted using 3)
+df_time %<>% mutate(time=ifelse(grepl("grpRR", method), time/3/60, time/60))
+
+# nice method names
+df_time %<>% mutate(method = make_nicenames(method))
+df_time %<>% filter(method %in% c(methods2compare_dense, methods2compare_sparse))
+
+ggplot(df_time, aes(x=method, y=time, col=method)) +
+  stat_summary() + ylab("time [min]") + 
+  theme_bw(base_size = 15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle=60, vjust=1, hjust=1))+
+  scale_color_manual(values = cols4methods)
+```
+
+SessionInfo
+```{r}
+sessionInfo()
+```
+

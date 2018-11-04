@@ -1,0 +1,166 @@
+---
+title: "CLL example: predicting drug responses using 3 omics (drug/mRNA/meth)"
+author: "Britta Velten"
+date: "12/07/2018"
+output:
+  BiocStyle::html_document:
+    toc: true
+---
+
+```{r, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+library(plyr)
+library(cowplot)
+library(reshape2)
+options(stringsAsFactors = FALSE)
+library(grpRR)
+library(tidyverse)
+library("wesanderson")
+library(ggbeeswarm)
+source("../util_defs.R") # contains color schemes and defines which methods to include
+```
+
+# Perparations
+Set input/output paths.
+```{r}
+datadir <- "data"
+outdir <- "2018-07-29"
+knitr::opts_chunk$set(fig.path = "figs/", dev = c('png',"pdf"))
+```
+
+Load data used for fitting.
+```{r}
+load(file.path(datadir, "dataCLL.RData"))
+dim(data$X)
+```
+
+Load summarised results.
+```{r}
+load(file.path(outdir,"result_CLL.RData"))
+```
+
+Colors for omics
+```{r}
+cols4groups <- c(wes_palette("GrandBudapest1"),
+                 wes_palette("GrandBudapest2")[1])
+names(cols4groups) <- c("Drugs", "Methylation","mRNA")
+```
+
+# Make plots
+## RMSE
+Compare prediciton performance between the methods in terms of root mean squared error.
+```{r RMSE, fig.widht=8, fig.height=6}
+df_RMSE <- melt(sapply(resultList, function(l) l$RMSE),
+                varnames = c("method", "run"), value.name="RMSE")
+df_RMSE %<>% mutate(method = make_nicenames(method))
+df_RMSE %<>% mutate(method_type=ifelse(method%in% methods2compare_sparse,
+                                       "sparse", "dense"))  
+df_RMSE %<>% filter(method %in% methods2compare_sparse |
+                      method %in% methods2compare_dense) 
+
+# plot 
+ggplot(df_RMSE, aes(x=method, y=RMSE, fill=method)) +
+  geom_boxplot(alpha=0.5) + 
+  # ggtitle ("Prediction of ibrutinib response")  +
+  geom_point() + facet_wrap(~method_type, scale="free_x") +
+  scale_fill_manual(values = cols4methods) +
+  theme(axis.text.x = element_text(angle=60, vjust=1, hjust=1),
+        axis.title.x = element_blank())
+```
+
+## Penalty Factors (in sparse grpRR)
+```{r hyperparameters, fig.widht=8, fig.height=3}
+df_pf <- melt(lapply(resultList, function(l) l$pf_mat[, "grpRR_SS", drop=F]),
+              varnames = c("omic", "method"))
+df_pf$omic <-  c("Drugs", "Methylation","mRNA")[df_pf$omic]
+df_pf$value <- as.numeric(df_pf$value)
+
+gg1 <- ggplot(df_pf,aes(x=omic, y=value)) + geom_boxplot() +
+  ylab(expression(hat(gamma))) + geom_beeswarm(aes(col=omic)) +
+  guides(col=FALSE) + xlab("omic type") + 
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
+
+df_pf <- melt(lapply(resultList, function(l) l$sparsity_mat[, "grpRR_SS", drop=F]),
+              varnames = c("omic", "method"))
+df_pf$omic <-  c("Drugs", "Methylation","mRNA")[df_pf$omic]
+
+gg2 <- ggplot(df_pf,aes(x=omic, y=value)) + geom_boxplot() +
+  ylab(expression(hat(pi))) + geom_beeswarm(aes(col=omic))+ xlab("omic type") + 
+  theme_bw(base_size = 15) +
+  scale_color_manual(values = cols4groups)
+
+plot_grid(gg1,gg2, rel_widths = c(1,1.5), nrow=1, align = "hv", axis = "lb")
+```
+
+## Runtime
+```{r time, eval= FALSE, echo =FALSE}
+time_mat <- sapply(resultList, function(l) l$runtime)
+df_time <- melt(time_mat,
+                varname=c("method", "fold"), value.name="time")
+
+# only compare to a single iteration (fitted using 3)
+df_time %<>% mutate(time=ifelse(grepl("grpRR", method), time/3/60, time/60))
+
+# nice method names
+df_time %<>% mutate(method = make_nicenames(method))
+df_time %<>% filter(method %in% c(methods2compare_dense, methods2compare_sparse))
+
+ggplot(df_time, aes(x=method, y=time, col=method)) +
+  stat_summary() + ylab("time [min]") + 
+  theme_bw(base_size = 15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle=60, vjust=1, hjust=1))+
+  scale_color_manual(values = cols4methods)
+```
+
+## Selected features
+```{r, eval=FALSE, echo= FALSE}
+getSelected <- function(resultList, methodnm){
+  nfolds <- length(resultList)
+  chosen_per_fold <- lapply(1:nfolds, function(i) {
+    names(which(resultList[[i]]$beta_mat[,methodnm]!=0))
+    })
+  df <- data.frame(times_selected = as.numeric(table(Reduce(c,chosen_per_fold))),
+                 feature = names( table(Reduce(c,chosen_per_fold))))
+  df$omic = sapply(df$feature, function(s) {
+    resultList[[1]]$annot[which(rownames(resultList[[1]]$beta_mat)==s)]
+    })
+  df$omic <-  c("Drugs", "Methylation","mRNA")[df$omic]
+  
+  ggplot(df, aes(x = feature, y = times_selected, fill = omic)) +
+  geom_bar(stat="identity") + 
+  theme(axis.text.x = element_text(angle=60, hjust=1, vjust=1),
+        axis.title.x = element_blank()) +
+  ylab("# selected") + geom_hline(yintercept=nfolds, lty="dashed") +
+  ggtitle(methodnm)
+}
+```
+
+```{r selected, eval=FALSE, echo= FALSE}
+## for grpRR_SS
+gg_grpRR <- getSelected(resultList, "grpRR_SScutoff")
+
+## for Lasso
+gg_Lasso <- getSelected(resultList, "Lasso") +
+  theme(axis.text.x = element_blank())
+
+## for EN
+gg_EN <- getSelected(resultList, "ElasticNet") +
+  theme(axis.text.x = element_blank())
+
+## for IPF-Lasso
+gg_IPF <- getSelected(resultList, "IPFLasso") +
+  theme(axis.text.x = element_blank())
+
+# joint plot
+plot_grid(gg_grpRR, gg_Lasso, gg_IPF, gg_EN,
+          align="hv", axis = "lb")
+```
+
+SessionInfo
+```{r}
+sessionInfo()
+```
+

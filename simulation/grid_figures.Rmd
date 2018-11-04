@@ -1,0 +1,410 @@
+---
+title: "Figures for results from grid simulation"
+author: "Britta Velten"
+date: "13/07/2018"
+output: BiocStyle::html_document
+---
+
+```{r}
+library(tidyverse)
+library("wesanderson")
+library(RColorBrewer)
+source("../util_defs.R") # contains color schemes and methods to include
+```
+
+
+# Perparations
+Set input/output paths.
+```{r}
+datadir <- "data"
+outdir <- "all_2018-10-31"
+knitr::opts_chunk$set(fig.path = "figs/", dev = c('png',"pdf"))
+```
+
+```{r}
+cols4groups <- RColorBrewer::brewer.pal(8,"Paired")[c(1:4, 7:8)]
+# cols4groups <- c(wes_palette("GrandBudapest1"),wes_palette("GrandBudapest2")[1:2])
+names(cols4groups) <- 1:6
+```
+
+Load grid parameters
+```{r}
+load(file.path(datadir, "grid.RData"))
+# number of settings
+nrow(grid)
+n_groups <- 6
+```
+
+# Load models
+```{r load}
+files <- list.files(outdir)
+files <- files[grepl(".RData", files)]
+res_all <- lapply(files, function(fnm){
+  # load fits
+  load(file.path(outdir,fnm))
+  # add parameter info
+  params <- strsplit(fnm,"_")[[1]]
+  res$n <- as.numeric(sub("n","",params[1]))
+  res$p <- as.numeric(sub("p","",params[2]))
+  res$pi_low <- as.numeric(sub("pil","",params[3]))
+  res$pi_high <- 1.5*res$pi_low
+  res$rho <- as.numeric(sub("rho","",params[4]))
+  res$tau <- as.numeric(sub(".RData","",sub("tau","",params[5])))
+  res$iter <- 1:nrow(res)
+  res
+}) %>% dplyr::bind_rows()
+
+base_cols <- c("n","p","pi_low", "pi_high", "rho", "tau", "iter")
+RMSE_cols <- colnames(res_all)[grep("RMSE[.]",colnames(res_all))]
+time_cols <- colnames(res_all)[grep("runtime[.]",colnames(res_all))]
+gamma_cols <- colnames(res_all)[grep("^gamma[.]",colnames(res_all))]
+pi_cols <- colnames(res_all)[grep("^pi[.]",colnames(res_all))]
+true_gamma_cols  <- colnames(res_all)[grep("true.gamma[.]",colnames(res_all))]
+true_pi_cols  <- colnames(res_all)[grep("true.pi[.]",colnames(res_all))]
+betaMSE_cols <- colnames(res_all)[grep("MSE_beta[.]",colnames(res_all))]
+
+# base parameters
+getBaseParam <- function(param){
+  as.numeric(names(table(grid[[param]]))[which.max(table(grid[[param]]))])
+}
+n_base <- getBaseParam("n")
+p_base <- getBaseParam("pg")*n_groups
+pi_low_base <- getBaseParam("pi_low")
+rho_base <-  getBaseParam("rho")
+tau_base <- getBaseParam("tau")
+```
+
+# RMSE
+```{r rmse, fig.height=6, fig.width=12}
+df_RMSE <- res_all %>% select(c(base_cols, RMSE_cols)) %>%
+  gather(key="method", value="RMSE", -seq_along(base_cols)) %>%
+  mutate(method = sub("RMSE[.]", "", method)) %>%
+  mutate(method = make_nicenames(method)) %>%
+  mutate(method_type=ifelse(method%in% methods2compare_sparse, "sparse", "dense"))  %>%
+  filter(method %in% methods2compare_sparse | method %in% methods2compare_dense) 
+
+ggRMSE_n <- df_RMSE %>%
+  filter(p==p_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=n, y=RMSE, col=method)) + #geom_vline(xintercept = n_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
+  ylab(bquote(RMSE (hat(y))))+
+  stat_summary(fun.y = mean, geom = "line") +
+  facet_wrap(~method_type, scales="fixed") + scale_y_log10()+
+  scale_x_continuous(breaks = seq(0,1000,200)) +
+  theme_bw(base_size = 15)+ scale_color_manual(values = cols4methods)
+
+ggRMSE_p <- df_RMSE %>%
+  filter(n==n_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=p, y=RMSE, col=method)) + #geom_vline(xintercept = p_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +ylab(bquote(RMSE (hat(y))))+
+  stat_summary(fun.y = mean, geom = "line") +
+  facet_wrap(~method_type, scales="fixed") + scale_y_log10()+
+  scale_x_continuous(breaks = seq(0,2000,500)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods)
+
+ggRMSE_pi <- df_RMSE %>%
+  filter(n==n_base, p == p_base, rho == rho_base, tau==tau_base) %>% 
+  ggplot(aes(x=pi_low, y=RMSE, col=method)) + #geom_vline(xintercept = pi_low_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
+  stat_summary(fun.y = mean, geom = "line") + facet_wrap(~method_type, scales="fixed")  +
+  xlab(expression(nu)) + ylab(bquote(RMSE (hat(y)))) +
+  scale_y_log10() + scale_x_continuous(breaks = seq(0,1,0.5)) +
+  theme_bw(base_size = 15)+ scale_color_manual(values = cols4methods)
+
+ggRMSE_rho <- df_RMSE %>%
+  filter(n==n_base, p == p_base, pi_low == pi_low_base, tau==tau_base) %>%
+  ggplot(aes(x=rho, y=RMSE, col=method)) + #geom_vline(xintercept = rho_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
+  stat_summary(fun.y = mean, geom = "line") + xlab(expression(rho)) +
+  facet_wrap(~method_type, scales="fixed") + scale_y_log10()+ylab(bquote(RMSE (hat(y)))) +
+  scale_x_continuous(breaks = c(0,0.5,0.9)) + theme_bw(base_size = 15) +
+  scale_color_manual(values = cols4methods)
+
+ggRMSE_tau <- df_RMSE %>%
+  filter(n==n_base, p == p_base, pi_low == pi_low_base, rho == rho_base) %>%
+  ggplot(aes(x=tau, y=RMSE, col=method)) + #geom_vline(xintercept = tau_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
+  stat_summary(fun.y = mean, geom = "line") + xlab(expression(tau)) +
+  facet_wrap(~method_type, scales="fixed") + scale_x_log10(breaks = c(0.1,10)) +
+  scale_y_log10() + ylab(bquote(RMSE (hat(y)))) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods)
+
+gg_legend <- get_legend(ggRMSE_n +  guides(col=guide_legend(ncol=2, title = "")))
+
+cowplot::plot_grid(ggRMSE_p + guides(col=FALSE), ggRMSE_n  + guides(col=FALSE),
+                   ggRMSE_pi  + guides(col=FALSE), ggRMSE_rho  + guides(col=FALSE),
+                   ggRMSE_tau+ guides(col=FALSE), gg_legend, ncol=3)
+
+gg_RMSE <- cowplot::plot_grid(ggRMSE_p + guides(col=FALSE)+ theme(strip.text = element_blank()),
+                              ggRMSE_n  + guides(col=FALSE)+ theme(strip.text = element_blank()),
+                              ggRMSE_pi  + guides(col=FALSE)+ theme(strip.text = element_blank()),
+                              ggRMSE_rho  + guides(col=FALSE)+ theme(strip.text = element_blank()),
+                              ggRMSE_tau+ guides(col=FALSE) + theme(strip.text = element_blank()),
+                   ncol=1, labels = letters[1:5], label_size = 20)
+```
+
+# RMSE on beta
+```{r beta_mse, fig.height=6, fig.width=12}
+df_MSEbeta <- res_all %>% select(c(base_cols, betaMSE_cols)) %>%
+  gather(key="method", value="MSE", -seq_along(base_cols)) %>%
+  mutate(RMSE = sqrt(MSE)) %>%
+  mutate(method = sub("MSE_beta[.]", "", method)) %>%
+  mutate(method = make_nicenames(method)) %>%
+  mutate(method_type=ifelse(method %in% methods2compare_sparse, "sparse", "dense"))  %>%
+  filter(method %in% methods2compare_sparse | method %in% methods2compare_dense)
+
+ggMSEbeta_n <- df_MSEbeta %>%
+  filter(p==p_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=n, y=RMSE, col=method)) +#  geom_vline(xintercept = n_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
+  stat_summary(fun.y = mean, geom = "line") + facet_wrap(~method_type, scales="fixed") +
+  scale_x_continuous(breaks = seq(0,1000,200)) + ylab(bquote(RMSE (hat(beta)))) + 
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods)
+
+ggMSEbeta_p <- df_MSEbeta %>%
+  filter(n==n_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=p, y=RMSE, col=method)) +#  geom_vline(xintercept = p_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) + 
+  stat_summary(fun.y = mean, geom = "line") +facet_wrap(~method_type, scales="fixed") +
+  scale_x_continuous(breaks = seq(0,2000,500)) + ylab(bquote(RMSE (hat(beta)))) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods)+
+  coord_cartesian(ylim=c(0, 120)) # cut off strong outliers for group lasso from plot
+                 
+ggMSEbeta_pi <- df_MSEbeta %>%
+  filter(n==n_base, p == p_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=pi_low, y=RMSE, col=method)) + #  geom_vline(xintercept = pi_low_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0)  + 
+  stat_summary(fun.y = mean, geom = "line") + facet_wrap(~method_type, scales="fixed")   +
+  xlab(expression(nu)) + ylab(bquote(RMSE (hat(beta)))) +
+  scale_x_continuous(breaks = seq(0,1,0.5)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods)
+
+ggMSEbeta_rho <- df_MSEbeta %>%
+  filter(n==n_base, p == p_base, pi_low == pi_low_base, tau==tau_base) %>%
+  ggplot(aes(x=rho, y=RMSE, col=method)) +#  geom_vline(xintercept = rho_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0)  + 
+  stat_summary(fun.y = mean, geom = "line") + facet_wrap(~method_type, scales="fixed") +
+  scale_x_continuous(breaks = c(0,0.5,0.9)) +xlab(expression(rho)) + ylab(bquote(RMSE (hat(beta)))) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods)
+
+ggMSEbeta_tau <- df_MSEbeta %>%
+  filter(n==n_base, p == p_base, pi_low == pi_low_base, rho == rho_base) %>%
+  ggplot(aes(x=tau, y=RMSE, col=method)) +# geom_vline(xintercept = tau_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0)  + 
+  stat_summary(fun.y = mean, geom = "line") + facet_wrap(~method_type, scales="fixed") +
+  scale_x_log10(breaks = c(0.1,10))  + xlab(expression(tau)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods) + ylab(bquote(RMSE (hat(beta))))
+
+gg_legend <- get_legend(ggMSEbeta_n +  guides(col=guide_legend(ncol=1, title = "")))
+
+cowplot::plot_grid(ggMSEbeta_p + guides(col=FALSE),
+                   ggMSEbeta_n  + guides(col=FALSE),
+                   ggMSEbeta_pi  + guides(col=FALSE),
+                   ggMSEbeta_rho  + guides(col=FALSE),
+                   ggMSEbeta_tau+ guides(col=FALSE),
+                   gg_legend, ncol=3)
+
+gg_RMSE_beta <- cowplot::plot_grid(ggMSEbeta_p + guides(col=FALSE) +
+                                     theme(strip.text = element_blank()),
+                                   ggMSEbeta_n  + guides(col=FALSE) +
+                                     theme(strip.text = element_blank()),
+                                   ggMSEbeta_pi  + guides(col=FALSE) +
+                                     theme(strip.text = element_blank()), 
+                                   ggMSEbeta_rho  + guides(col=FALSE) +
+                                     theme(strip.text = element_blank()), 
+                                   ggMSEbeta_tau+ guides(col=FALSE) +
+                                     theme(strip.text = element_blank()),
+                                   ncol=1)
+```
+
+```{r mse_joint, fig.height=13, fig.width=10}
+gg_sparse <- filter(df_MSEbeta, method %in% methods2compare_sparse) %>% 
+  ggplot(aes(x=n,y=MSE, col=method)) +geom_line() +
+  scale_color_manual(values = cols4methods) +theme_bw(base_size = 18)+
+  guides(col=guide_legend(title="methods (sparse)", ncol=2))
+gglegend_sparse <- get_legend(gg_sparse)
+
+gg_dense <- filter(df_MSEbeta, method %in% methods2compare_dense) %>%
+  ggplot(aes(x=n,y=MSE, col=method)) +geom_line()+
+   scale_color_manual(values = cols4methods) +theme_bw(base_size = 18) +
+  guides(col=guide_legend(title="methods (dense)", ncol=2))
+gglegend_dense <- get_legend(gg_dense)
+cowplot::plot_grid( gglegend_dense,gglegend_sparse,
+                    gg_RMSE, gg_RMSE_beta,
+                    ncol=2, rel_heights = c(1,7))
+```
+
+# Parameter recovery
+## Sparsity
+```{r pi, fig.height=15, fig.width=10}
+df_pi_true <- dplyr::select(res_all, c(base_cols, true_pi_cols))   %>% 
+  gather(key="group", value="pi_true", true_pi_cols) %>%
+  mutate(group = sub("true.pi.","", group))
+df_pi <- dplyr::select(res_all, c(base_cols, pi_cols)) %>% 
+  gather(key="group", value="pi", pi_cols)%>%
+  mutate(group = sub("pi.","", group))
+df_pi_joint <- plyr::join(df_pi, df_pi_true, by=c(base_cols,"group"))
+df_pi_joint <- mutate(df_pi_joint, sparse_group = group %in% c(1,3,5))
+
+ggpi_n <- df_pi_joint %>%
+  filter(p==p_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=n, y=pi, col=group)) + #geom_vline(xintercept = n_base, lty="dashed") + 
+  geom_hline(aes(yintercept = pi_true)) +ylim(c(0,1))+
+  stat_summary(geom = "line") + geom_point(size=0.5) +
+  facet_wrap(~ sparse_group, nrow=1) + ylab(expression(hat(pi))) +
+  scale_x_continuous(breaks = seq(0,1000,200)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
+
+ggpi_p <- df_pi_joint %>%
+  filter(n==n_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=p, y=pi, col=group)) +
+  #geom_vline(xintercept = p_base, lty="dashed") + 
+  geom_hline(aes(yintercept = pi_true)) +ylim(c(0,1)) +
+  stat_summary(geom = "line") + geom_point(size=0.5) +
+  facet_wrap(~ sparse_group, nrow=1) + ylab(expression(hat(pi))) +
+  scale_x_continuous(breaks = seq(0,2000,500)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
+
+ggpi_pi <- df_pi_joint %>%
+  filter(p==p_base, n == n_base, rho == rho_base) %>%
+  ggplot(aes(x=pi_low, y=pi, col=group)) + geom_line(aes(x=pi_low, y=pi_true), col ="black") + 
+  stat_summary(geom = "line") + geom_point(size=0.5) +
+  facet_wrap(~ sparse_group, nrow=1) +ylim(c(0,1)) +
+  ylab(expression(hat(pi)))   + xlab(expression(nu)) +
+  scale_x_continuous(breaks = c(0.1,0.5,0.9)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
+
+ggpi_rho <- df_pi_joint %>%
+  filter(n==n_base, pi_low == pi_low_base, p == p_base,  tau==tau_base) %>%
+  ggplot(aes(x=rho, y=pi, col=group)) +
+  #geom_vline(xintercept = rho_base, lty="dashed") + 
+  geom_hline(aes(yintercept = pi_true)) +ylim(c(0,1)) +
+  stat_summary(geom = "line") + geom_point(size=0.5) +
+  facet_wrap(~ sparse_group, nrow=1) +
+  ylab(expression(hat(pi))) +xlab(expression(rho)) +
+  scale_x_continuous(breaks = c(0.1,0.5,0.9)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
+
+ggpi_tau <- df_pi_joint %>%
+  filter(n==n_base, pi_low == pi_low_base, p == p_base,  rho==rho_base) %>%
+  ggplot(aes(x=tau, y=pi, col=group)) + 
+  #geom_vline(xintercept = tau_base, lty="dashed") + 
+  geom_hline(aes(yintercept = pi_true)) +ylim(c(0,1)) +
+  stat_summary(geom = "line") + geom_point(size=0.5) +
+  facet_wrap(~ sparse_group, nrow=1) +scale_x_log10(breaks = c(0.1,10)) +
+  scale_color_manual() +ylab(expression(hat(pi)))+ xlab(expression(tau)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
+
+cowplot::plot_grid(ggpi_n, ggpi_p, ggpi_pi, ggpi_rho, ggpi_tau, ncol = 1)
+```
+
+## Overall penalty
+```{r gamma, fig.height=18, fig.width=10}
+df_gamma_true <- select(res_all, c(base_cols, true_gamma_cols))   %>% 
+  gather(key="group", value="gamma_true", true_gamma_cols) %>%
+  mutate(group = sub("true.gamma.","", group))
+df_gamma <- select(res_all, c(base_cols, gamma_cols)) %>% 
+  gather(key="group", value="gamma", gamma_cols)%>%
+  mutate(group = sub("gamma.","", group))
+df_gamma_joint <- plyr::join(df_gamma, df_gamma_true, by=c(base_cols,"group"))
+
+gggamma_n <- df_gamma_joint %>%
+  filter(p==p_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=n, y=gamma, col=group)) + #geom_vline(xintercept = n_base, lty="dashed") + 
+  geom_hline(aes(yintercept = gamma_true)) +
+  stat_summary(geom = "line") + geom_point(size=0.5) +
+  facet_wrap(~gamma_true, nrow=1) + ylab(expression(hat(gamma))) + 
+  scale_y_log10()+scale_y_log10() +
+  scale_x_continuous(breaks = seq(0,1000,200)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
+
+gggamma_p <- df_gamma_joint %>%
+  filter(n==n_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=p, y=gamma, col=group)) + #geom_vline(xintercept = p_base, lty="dashed") + 
+  geom_hline(aes(yintercept = gamma_true)) +
+  stat_summary(geom = "line") + geom_point(size=0.5) +
+  facet_wrap(~gamma_true, nrow=1) +
+  ylab(expression(hat(gamma))) + scale_y_log10() +
+  scale_x_continuous(breaks = seq(0,2000,500)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
+
+gggamma_pi <- df_gamma_joint %>%
+  filter(p==p_base, n == n_base, rho == rho_base) %>%
+  ggplot(aes(x=pi_low, y=gamma, col=group)) + geom_hline(aes(yintercept = gamma_true)) + 
+  stat_summary(geom = "line") + geom_point(size=0.5) +
+  facet_wrap(~ gamma_true, nrow=1) +scale_y_log10() +
+  ylab(expression(hat(gamma))) +  xlab(expression(nu)) +
+  scale_x_continuous(breaks = c(0.1,0.5,0.9)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
+
+gggamma_rho <- df_gamma_joint %>%
+  filter(n==n_base, pi_low == pi_low_base, p == p_base,  tau==tau_base) %>%
+  ggplot(aes(x=rho, y=gamma, col=group)) +
+  #geom_vline(xintercept = rho_base, lty="dashed") + 
+  geom_hline(aes(yintercept = gamma_true)) +
+  stat_summary(geom = "line") + geom_point(size=0.5) +
+  facet_wrap(~ gamma_true, nrow=1) + scale_y_log10() +
+  ylab(expression(hat(gamma))) + xlab(expression(rho)) +
+  scale_x_continuous(breaks = c(0.1,0.5,0.9)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
+
+gggamma_tau <- df_gamma_joint %>%
+  filter(n==n_base, pi_low == pi_low_base, p == p_base,  rho==rho_base) %>%
+  ggplot(aes(x=tau, y=gamma, col=group)) +
+  # geom_vline(xintercept = tau_base, lty="dashed") + 
+  geom_hline(aes(yintercept = gamma_true)) + scale_y_log10() +
+  ylab(expression(hat(gamma))) + xlab(expression(tau))+
+  stat_summary(geom = "line") + geom_point(size=0.5) +
+  facet_wrap(~gamma_true, nrow=1) + scale_x_log10(breaks = c(0.1,10)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
+
+cowplot::plot_grid(gggamma_n, gggamma_p, gggamma_pi,
+                   gggamma_rho, gggamma_tau, ncol = 1)
+```
+
+# Joint hyper-parameters plot
+```{r hyperparam, fig.width=13, fig.height=10}
+lower <- cowplot::plot_grid(gggamma_n + guides(col=FALSE)+
+                     theme(strip.background = element_blank(),
+                           strip.text.x = element_blank()),
+                   ggpi_n + guides(col=FALSE)+
+                     theme(strip.background = element_blank(),
+                           strip.text.x = element_blank()),
+                   gggamma_p+ guides(col=FALSE)+
+                     theme(strip.background = element_blank(),
+                           strip.text.x = element_blank()),
+                   ggpi_p+ guides(col=FALSE)+
+                     theme(strip.background = element_blank(),
+                           strip.text.x = element_blank()),
+                   gggamma_pi+ guides(col=FALSE)+
+                     theme(strip.background = element_blank(),
+                           strip.text.x = element_blank()),
+                   ggpi_pi + guides(col=FALSE)+
+                     theme(strip.background = element_blank(),
+                           strip.text.x = element_blank()),
+                   gggamma_rho+ guides(col=FALSE)+
+                     theme(strip.background = element_blank(),
+                           strip.text.x = element_blank()),
+                   ggpi_rho+ guides(col=FALSE)+
+                     theme(strip.background = element_blank(),
+                           strip.text.x = element_blank()),
+                   gggamma_tau+ guides(col=FALSE)+
+                     theme(strip.background = element_blank(),
+                           strip.text.x = element_blank()),
+                   ggpi_tau+ guides(col=FALSE)+
+                     theme(strip.background = element_blank(),
+                           strip.text.x = element_blank()),
+                   ncol = 2, rel_widths = c(3,2),
+                   labels = sapply(seq(1,5.5,0.5), function(i) {
+                                     ifelse(i%%1==0, letters[i], "")
+                     }),
+                   label_size = 20)
+cowplot::plot_grid(get_legend(gggamma_n + guides(color = guide_legend(ncol=6,title.position = "left"))),
+                   lower, rel_heights = c(1,20), ncol=1)
+```
+
+# SessionInfo
+```{r}
+sessionInfo()
+```
+

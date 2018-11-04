@@ -1,0 +1,160 @@
+---
+title: "GTEx data"
+author: "Britta Velten"
+date: "30/8/2017"
+output:
+  BiocStyle::html_document:
+    toc: true
+---
+
+
+# Introduction
+Script to obtain data from GTEx for analysis of the aging transcriptome.
+
+```{r, message=FALSE, warning=FALSE}
+library(data.table)
+library('recount')
+library(DESeq2)
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+library(plyr)
+library(reshape2)
+options(stringsAsFactors = FALSE)
+```
+
+# Data import
+```{r}
+# adpat to the directory containing the txt files for donor and sample info
+datadir <- "~/Documents/LassoVariants/grpRR_model/Applications/GTEx/data/"
+```
+
+## Get count data from recount
+GTEx data is available on [recount](https://jhubiostatistics.shinyapps.io/recount/).
+```{r, eval=FALSE}
+url <- download_study('SRP012682')
+load(file.path('SRP012682', 'rse_gene.Rdata'))
+rse_gene
+# save(rse_gene, file=file.path(datadir, "rse_gene.RData"))
+```
+
+```{r, eval= FALSE, echo = FALSE}
+load(file.path(datadir, "rse_gene.RData"))
+```
+
+
+## Get sample and donor info
+This is not publicly available from recount and requires dbGAP access.
+```{r, eval= FALSE}
+# load files phs000424.v6.pht002742.v6.p1.c1.GTEx_Subject_Phenotypes.GRU.txt and SraRunTable.txt
+files <- list.files(datadir)
+files <- files[grepl(".txt", files)]
+subjectPheno <- fread(file.path(datadir, files[1]), header = TRUE, skip = 10)
+sraRun <- fread(file.path(datadir, files[2]), header = TRUE)
+```
+
+## Map to colData of RSE object
+Sample and donor information is spread across three object: 
+
+- rse_gene 
+    * sample SRS389722 (match with sraRun.SRA_Sample_s)
+    * experiment SRX222703 (match with sraRun.Experiment_s)
+    * run SRR660824 (match with sraRun.Run_s)
+
+- sraRun (10474 runs)
+    * Experiment_s SRX197226 (match with rse_gene.experiment)
+    * Run_s  SRR595926 (match with rse_gene.run)
+    * SRA_Sample_s SRS332984 (match with rse_gene.sample)
+    * submitted_subject_id_s GTEX-N7MS (match with subjectPheno.SUBJID)
+
+- subjectPheno (572)
+    * SUBJID GTEX-N7M   (match with sraRun.submitted_subject_id_s)
+
+The following code fills in information in colData of rse_gene on donors and samples contained in sraRun and subjectPheno.
+```{r, eval=FALSE}
+colnames(sraRun)[match(c("Experiment_s", "Run_s", "SRA_Sample_s", "submitted_subject_id_s"),colnames(sraRun))] <- c("experiment", "run", "sample", "subject_id")
+colnames(subjectPheno)[match(c("SUBJID"), colnames(subjectPheno))] <- c("subject_id")
+
+allInfo <- join(as.data.frame(colData(rse_gene)), sraRun, by=c("experiment", "run", "sample"), type="left")
+allInfo <- join(allInfo, subjectPheno, by=c("subject_id"), type="left")
+all(rownames(colData(rse_gene))==allInfo$run)
+
+rse_gene_ext <- rse_gene
+colData(rse_gene_ext) <- DataFrame(allInfo)
+```
+
+
+## Save joint data object
+```{r, eval=FALSE}
+save(rse_gene_ext, file=file.path(datadir, "rse_gene_ext.RData"))
+```
+
+```{r}
+load(file.path(datadir, "rse_gene_ext.RData"))
+```
+
+# Donor - level information
+```{r}
+cdat <- as.data.frame(colData(rse_gene_ext))
+nrow(cdat)
+```
+
+Summary on donor level
+```{r}
+donor_meta <- cdat %>%
+  group_by(subject_id) %>%
+  dplyr::summarise(n_samples= length(unique(sample)),
+                   n_runs= length(unique(run)),
+                   n_experiments= length(unique(experiment)),
+                   age= unique(AGE),
+                   sex=unique(sex_s),
+                   n_tissues_d= length(unique(smtsd)),
+                   n_tissues= length(unique(smts)),
+                   race = unique(RACE),
+                   ethnicity = unique(ETHNCTY),
+                   height= unique(HGHT),
+                   weight= unique(WGHT),
+                   BMI = unique(BMI))
+nrow(donor_meta)
+```
+
+
+# Overview of important covariates
+```{r}
+#age
+table(donor_meta$age)
+hist(donor_meta$age, breaks = seq(min(donor_meta$age),max(donor_meta$age),1),
+     col="cornflowerblue", main = "Age Distribution across donors", xlab="age", ylab="number samples")
+
+# sex
+table(donor_meta$sex)
+pie(table(donor_meta$sex), labels=paste(names(table(donor_meta$sex)), table(donor_meta$sex), sep=":"),main="Sex distribution across donors")
+
+# tissues
+table(donor_meta$n_tissues)
+barplot(table(donor_meta$n_tissues), col="cornflowerblue", main="Number of tissues per donor")
+
+# samples
+table(donor_meta$n_samples)
+barplot(table(donor_meta$n_samples), col="cornflowerblue", main="Number of samples per donor")
+
+# tissues - detailed
+df <- data.frame(table(rse_gene_ext$smtsd))
+colnames(df) <- c("tissue", "number_samples")
+df %<>% mutate(tissue=ifelse(tissue=="", "missing annotation", as.character(tissue)))
+ggplot(filter(df, tissue !="missing annotation"), aes(x=tissue, y=number_samples, fill=tissue)) +geom_bar(stat="identity") + theme(axis.text.x = element_text(angle=60, hjust=1)) +guides(fill=F)
+df
+
+ # tissues - broad
+ df <- data.frame(table(rse_gene_ext$smts))
+colnames(df) <- c("tissue", "number_samples")
+df %<>% mutate(tissue=ifelse(tissue=="", "missing annotation", as.character(tissue)))
+ggplot(filter(df, tissue !="missing annotation"), aes(x=tissue, y=number_samples, fill=tissue)) +geom_bar(stat="identity") + theme(axis.text.x = element_text(angle=60, hjust=1)) +guides(fill=F)
+ df
+```
+
+
+```{r}
+sessionInfo()
+```
+
