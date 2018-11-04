@@ -7,11 +7,11 @@ source("mygrridge.R") # not required in GRridge version 1.7.1 from GitHub, which
 #' @name runMethods
 #' @description Function to fit a linear or logistic regression model using several different methods.
 #' @details This function fits a linear of logistic regression model to the data using various different methods.
-#' grpRR is always included in its factorized form (both dense (grpRR_FF) and sparse (grpRR_SS)). In addition, a grpRR model is included with all
-#' coefficients set to 0 whose posterior inclusion probability (s) is below 50% (grpRR_SScutoff). As a comparison, ridge regression,
+#' graper is always included in its factorized form (both dense (graper_FF) and sparse (graper_SS)). In addition, a graper model is included with all
+#' coefficients set to 0 whose posterior inclusion probability (s) is below 50% (graper_SScutoff). As a comparison, ridge regression,
 #' Lasso and elastic net as well as a intercept-only model are fitted. Other methods can be included via the respective options, such as GRridge,
-#'  non-factorized grpRR (grpRR), IPF-Lasso, sparse group Lasso, group Lasso, adaptive Lasso, varbvs, random forest and
-#'  grpRR without group annotations (grpRR_SS_ungrouped) or without different slab precisions (grpRR_nogamma).
+#'  non-factorized graper (graper), IPF-Lasso, sparse group Lasso, group Lasso, adaptive Lasso, varbvs, random forest and
+#'  graper without group annotations (graper_SS_ungrouped) or without different slab precisions (graper_nogamma).
 #' 
 #'  The fitted methods can be evaluated on test data using the function \code{\link{evaluateFits}}.
 #' @param Xtrain design matrix with samples in rows and features in columns (n x p)
@@ -24,26 +24,26 @@ source("mygrridge.R") # not required in GRridge version 1.7.1 from GitHub, which
 #'  NULL otherwise (default)
 #' @param trueintercept true intercept in the linear model if known,
 #'  NULL otherwise (default)
-#' @param max_iter maximum number of iterations for grpRR methods (see also  \code{\link{grpRR}})
+#' @param max_iter maximum number of iterations for graper methods (see also  \code{\link{graper}})
 #' @param family likelihood model for the response,
 #'  either "gaussian" for linear regression
 #' or "binomial" for logistic regression
-#' @param calcELB whether to calculate the evidence lower bound (ELB) for grpRR (see also  \code{\link{grpRR}})
-#' @param freqELB frequency at which the evidence lower bound (ELB) is to be calculated for grpRR,
-#'  i.e. each freqELB-th iteration (see also  \code{\link{grpRR}})
-#' @param th convergence threshold for the evidence lower bound (ELB) in grpRR (see also  \code{\link{grpRR}})
-#' @param n_rep number of repetitions with different random initializations to be fit in grpRR (see also  \code{\link{grpRR}})
+#' @param calcELB whether to calculate the evidence lower bound (ELB) for graper (see also  \code{\link{graper}})
+#' @param freqELB frequency at which the evidence lower bound (ELB) is to be calculated for graper,
+#'  i.e. each freqELB-th iteration (see also  \code{\link{graper}})
+#' @param th convergence threshold for the evidence lower bound (ELB) in graper (see also  \code{\link{graper}})
+#' @param n_rep number of repetitions with different random initializations to be fit in graper (see also  \code{\link{graper}})
 #' @param verbose  whether to print out intermediate messages during fitting
 #' @param includeGRridge  whether to fit GRridge
-#' @param include_grpRR_nonfacQ  whether to fit grpRR method with multivariate variational distribution be fitted (can be slow for large data sets)
+#' @param include_graper_nonfacQ  whether to fit graper method with multivariate variational distribution be fitted (can be slow for large data sets)
 #' @param includeIPF  whether to fit IPF-Lasso be fitted
 #' @param includeSparseGroupLasso  whether to fit sparse group Lasso
 #' @param includeGroupLasso  whether to fit group Lasso
 #' @param includeAdaLasso  whether to fit Lasso
 #' @param includeRF whether to fit random forest
 #' @param includeVarbvs  whether to fit varbvs
-#' @param include_grpRR_SS_nogamma  whether to fit grpRR with same penalty factor but different sparsity levels  per group
-#' @param include_grpRR_SS_ungrouped whether to fit grpRR without group annotations
+#' @param include_graper_SS_nogamma  whether to fit graper with same penalty factor but different sparsity levels  per group
+#' @param include_graper_SS_ungrouped whether to fit graper without group annotations
 #' @param verbose_progress  whether to print out details on the overall progress
 #' @importFrom glmnet cv.glmnet
 #' @importFrom varbvs varbvs
@@ -57,12 +57,12 @@ source("mygrridge.R") # not required in GRridge version 1.7.1 from GitHub, which
 #' \describe{
 #' \item{summaryList}{list with the fitted models for each method that was included in the comparison, such as
 #' \itemize{
-#' \item grpRR_SS (sparse grpRR model with factorized variational distribution)
-#' \item grpRR_FF (dense grpRR model with factorized variational distribution)
-#' \item grpRR (dense grpRR model with non-factorized variational distribution)
-#' \item grpRR_SScutoff (as grpRR_SS where coefficients with posterior inclusion probabilities below 0.5 are set to zero)
-#' \item grpRR_SS_nogamma (as grpRR_SS with a common slab precision across groups)
-#' \item grpRR_SS_ungrouped (as grpRR_SS without group annotation)
+#' \item graper_SS (sparse graper model with factorized variational distribution)
+#' \item graper_FF (dense graper model with factorized variational distribution)
+#' \item graper (dense graper model with non-factorized variational distribution)
+#' \item graper_SScutoff (as graper_SS where coefficients with posterior inclusion probabilities below 0.5 are set to zero)
+#' \item graper_SS_nogamma (as graper_SS with a common slab precision across groups)
+#' \item graper_SS_ungrouped (as graper_SS without group annotation)
 #' \item Ridge (ridge regression)
 #' \item Lasso (Lasso regression)
 #' \item ElasticNet (elastic net regression)
@@ -97,12 +97,12 @@ runMethods <- function(Xtrain, ytrain, annot,
                        beta0 = NULL, trueintercept = NULL,
                        max_iter = 5000, freqELB = 10, calcELB = TRUE, th = 0.01,
                        n_rep=1, verbose = FALSE, verbose_progress = TRUE,
-                       includeGRridge = FALSE, include_grpRR_nonfacQ = FALSE,
+                       includeGRridge = FALSE, include_graper_nonfacQ = FALSE,
                        includeSparseGroupLasso = FALSE, includeIPF = FALSE,
                        includeGroupLasso = FALSE, includeRF = FALSE,
                        includeAdaLasso = FALSE, includeVarbvs = FALSE,
-                       include_grpRR_SS_nogamma = FALSE,
-                       include_grpRR_SS_ungrouped = FALSE) {
+                       include_graper_SS_nogamma = FALSE,
+                       include_graper_SS_ungrouped = FALSE) {
 
   # sanity checks
   stopifnot(nrow(Xtrain) == length(ytrain))
@@ -123,99 +123,99 @@ runMethods <- function(Xtrain, ytrain, annot,
   #### RUN DIFFERENT METHODS ####
   summaryList <- list()
 
-  # grpRR: multivariate variational distribution, normal prior (dense)
-  if (include_grpRR_nonfacQ) {
+  # graper: multivariate variational distribution, normal prior (dense)
+  if (include_graper_nonfacQ) {
     tmp <- Sys.time()
-    if(verbose_progress) message(" ### Fitting grpRR model...")
-    grpRR <- grpRR(Xtrain, ytrain, annot = annot, factoriseQ = FALSE, spikeslab = FALSE,
+    if(verbose_progress) message(" ### Fitting graper model...")
+    graper <- graper(Xtrain, ytrain, annot = annot, factoriseQ = FALSE, spikeslab = FALSE,
                        max_iter = max_iter, intercept = intercept,
                        verbose = verbose, freqELB = freqELB, calcELB = calcELB,
                        family = family, th = th, standardize=standardize, n_rep=n_rep)
     timeNF <- difftime(Sys.time(), tmp, units = "secs")
-    grpRR_summary <- list()
-    grpRR_summary$runtime <- as.numeric(timeNF)
-    grpRR_summary$pf <- as.numeric(grpRR$EW_gamma)
-    grpRR_summary$beta <- grpRR$EW_beta
-    grpRR_summary$intercept <- grpRR$intercept
-    grpRR_summary$sparsity <- rep(1, G)  #dense - no sparsity per groups
-    grpRR_summary$out <- grpRR
-    rm(grpRR)
-    summaryList$grpRR <- grpRR_summary
+    graper_summary <- list()
+    graper_summary$runtime <- as.numeric(timeNF)
+    graper_summary$pf <- as.numeric(graper$EW_gamma)
+    graper_summary$beta <- graper$EW_beta
+    graper_summary$intercept <- graper$intercept
+    graper_summary$sparsity <- rep(1, G)  #dense - no sparsity per groups
+    graper_summary$out <- graper
+    rm(graper)
+    summaryList$graper <- graper_summary
   }
 
-  # grpRR_FF : fully factorized variational distribution, normal prior (dense)
+  # graper_FF : fully factorized variational distribution, normal prior (dense)
   tmp <- Sys.time()
-  if(verbose_progress) message(" ### Fitting grpRR_FF model...")
-  grpRR_FF <- grpRR(Xtrain, ytrain, annot = annot, factoriseQ = TRUE, spikeslab = FALSE,
+  if(verbose_progress) message(" ### Fitting graper_FF model...")
+  graper_FF <- graper(Xtrain, ytrain, annot = annot, factoriseQ = TRUE, spikeslab = FALSE,
                         max_iter = max_iter, intercept = intercept,
                         verbose = verbose, freqELB = freqELB, calcELB = calcELB,
                         family = family, th = th, standardize=standardize, n_rep=n_rep)
   timeFF <- difftime(Sys.time(), tmp, units = "secs")
-  grpRR_FF_summary <- list()
-  grpRR_FF_summary$runtime <- as.numeric(timeFF)
-  grpRR_FF_summary$pf <- as.numeric(grpRR_FF$EW_gamma)
-  grpRR_FF_summary$beta <- grpRR_FF$EW_beta
-  grpRR_FF_summary$intercept <- grpRR_FF$intercept
-  grpRR_FF_summary$sparsity <- rep(1, G)  #dense - no sparsity per groups
-  grpRR_FF_summary$out <- grpRR_FF
-  rm(grpRR_FF)
-  summaryList$grpRR_FF <- grpRR_FF_summary
+  graper_FF_summary <- list()
+  graper_FF_summary$runtime <- as.numeric(timeFF)
+  graper_FF_summary$pf <- as.numeric(graper_FF$EW_gamma)
+  graper_FF_summary$beta <- graper_FF$EW_beta
+  graper_FF_summary$intercept <- graper_FF$intercept
+  graper_FF_summary$sparsity <- rep(1, G)  #dense - no sparsity per groups
+  graper_FF_summary$out <- graper_FF
+  rm(graper_FF)
+  summaryList$graper_FF <- graper_FF_summary
 
-  # grpRR_SS: fully factorized variational distribution, spike and slab prior (sparse)
+  # graper_SS: fully factorized variational distribution, spike and slab prior (sparse)
   tmp <- Sys.time()
-  if(verbose_progress) message(" ### Fitting grpRR_SS model...")
-  grpRR_SS <- grpRR(Xtrain, ytrain, annot = annot, factoriseQ = TRUE, spikeslab = TRUE,
+  if(verbose_progress) message(" ### Fitting graper_SS model...")
+  graper_SS <- graper(Xtrain, ytrain, annot = annot, factoriseQ = TRUE, spikeslab = TRUE,
                         max_iter = max_iter, intercept = intercept,
                         verbose = verbose, freqELB = freqELB, calcELB = calcELB,
                         th = th, family = family, standardize=standardize, n_rep=n_rep)
   timeSS <- difftime(Sys.time(), tmp, units = "secs")
-  grpRR_SS_summary <- list()
-  grpRR_SS_summary$runtime <- as.numeric(timeSS)
-  grpRR_SS_summary$pf <- as.numeric(grpRR_SS$EW_gamma)
-  grpRR_SS_summary$beta <- grpRR_SS$EW_beta
-  grpRR_SS_summary$intercept <- grpRR_SS$intercept
-  grpRR_SS_summary$sparsity <- grpRR_SS$EW_pi
-  grpRR_SS_summary$out <- grpRR_SS
-  summaryList$grpRR_SS <- grpRR_SS_summary
+  graper_SS_summary <- list()
+  graper_SS_summary$runtime <- as.numeric(timeSS)
+  graper_SS_summary$pf <- as.numeric(graper_SS$EW_gamma)
+  graper_SS_summary$beta <- graper_SS$EW_beta
+  graper_SS_summary$intercept <- graper_SS$intercept
+  graper_SS_summary$sparsity <- graper_SS$EW_pi
+  graper_SS_summary$out <- graper_SS
+  summaryList$graper_SS <- graper_SS_summary
 
   # set factors with a low posteriori inclusion probability to zero
-  grpRR_SScutoff_summary <- list()
-  grpRR_SScutoff_summary$runtime <- as.numeric(timeSS)
-  grpRR_SScutoff_summary$pf <- as.numeric(grpRR_SS$EW_gamma)
-  grpRR_SScutoff_summary$beta <- ifelse(grpRR_SS$EW_s < 0.5, 0, grpRR_SS$EW_beta)
-  grpRR_SScutoff_summary$intercept <- grpRR_SS$intercept
-  grpRR_SScutoff_summary$sparsity <- grpRR_SS$EW_pi
-  grpRR_SScutoff_summary$out <- NULL
-  summaryList$grpRR_SScutoff <- grpRR_SScutoff_summary
-  rm(grpRR_SS)
+  graper_SScutoff_summary <- list()
+  graper_SScutoff_summary$runtime <- as.numeric(timeSS)
+  graper_SScutoff_summary$pf <- as.numeric(graper_SS$EW_gamma)
+  graper_SScutoff_summary$beta <- ifelse(graper_SS$EW_s < 0.5, 0, graper_SS$EW_beta)
+  graper_SScutoff_summary$intercept <- graper_SS$intercept
+  graper_SScutoff_summary$sparsity <- graper_SS$EW_pi
+  graper_SScutoff_summary$out <- NULL
+  summaryList$graper_SScutoff <- graper_SScutoff_summary
+  rm(graper_SS)
 
-  # grpRR_SS_nogamma: fully factorized variational distribution,
+  # graper_SS_nogamma: fully factorized variational distribution,
   # spike and slab prior (sparse) without different slab precisions
-  if(include_grpRR_SS_nogamma){
+  if(include_graper_SS_nogamma){
     tmp <- Sys.time()
-    if(verbose_progress) message(" ### Fitting grpRR_SS model without gamma...")
-    grpRR_SS_nogamma <- grpRR(Xtrain, ytrain, annot = annot, factoriseQ = TRUE,
+    if(verbose_progress) message(" ### Fitting graper_SS model without gamma...")
+    graper_SS_nogamma <- graper(Xtrain, ytrain, annot = annot, factoriseQ = TRUE,
                                   spikeslab = TRUE, max_iter = max_iter, intercept = intercept,
                                   verbose = verbose, freqELB = freqELB, calcELB = calcELB, th = th,
                                   family = family,  nogamma = TRUE, standardize=standardize, n_rep=n_rep)
     timeSS_nogamma <- difftime(Sys.time(), tmp, units = "secs")
-    grpRR_SS_nogamma_summary <- list()
-    grpRR_SS_nogamma_summary$runtime <- as.numeric(timeSS_nogamma)
-    grpRR_SS_nogamma_summary$pf <- rep(as.numeric(grpRR_SS_nogamma$EW_gamma), G)
-    grpRR_SS_nogamma_summary$beta <- grpRR_SS_nogamma$EW_beta
-    grpRR_SS_nogamma_summary$intercept <- grpRR_SS_nogamma$intercept
-    grpRR_SS_nogamma_summary$sparsity <- grpRR_SS_nogamma$EW_pi
-    grpRR_SS_nogamma_summary$out <- grpRR_SS_nogamma
-    summaryList$grpRR_SS_nogamma <- grpRR_SS_nogamma_summary
-    rm(grpRR_SS_nogamma)
+    graper_SS_nogamma_summary <- list()
+    graper_SS_nogamma_summary$runtime <- as.numeric(timeSS_nogamma)
+    graper_SS_nogamma_summary$pf <- rep(as.numeric(graper_SS_nogamma$EW_gamma), G)
+    graper_SS_nogamma_summary$beta <- graper_SS_nogamma$EW_beta
+    graper_SS_nogamma_summary$intercept <- graper_SS_nogamma$intercept
+    graper_SS_nogamma_summary$sparsity <- graper_SS_nogamma$EW_pi
+    graper_SS_nogamma_summary$out <- graper_SS_nogamma
+    summaryList$graper_SS_nogamma <- graper_SS_nogamma_summary
+    rm(graper_SS_nogamma)
   }
 
-  # grpRR_SS_ungrouped: fully factorized variational distribution, spike and slab prior
+  # graper_SS_ungrouped: fully factorized variational distribution, spike and slab prior
   # (sparse) without group annotations
-  if(include_grpRR_SS_ungrouped){
+  if(include_graper_SS_ungrouped){
     tmp <- Sys.time()
-    if(verbose_progress) message(" ### Fitting grpRR_SS model without group annotations...")
-    grpRR_SS_ungrouped <- grpRR(Xtrain, ytrain, annot = rep(1,ncol(Xtrain)),
+    if(verbose_progress) message(" ### Fitting graper_SS model without group annotations...")
+    graper_SS_ungrouped <- graper(Xtrain, ytrain, annot = rep(1,ncol(Xtrain)),
                                     factoriseQ = TRUE, spikeslab = TRUE,
                                     max_iter = max_iter, intercept = intercept,
                                     verbose = verbose, freqELB = freqELB,
@@ -223,15 +223,15 @@ runMethods <- function(Xtrain, ytrain, annot,
                                     family = family,  nogamma = TRUE,
                                     standardize=standardize, n_rep=n_rep)
     timeSS_ungrouped <- difftime(Sys.time(), tmp, units = "secs")
-    grpRR_SS_ungrouped_summary <- list()
-    grpRR_SS_ungrouped_summary$runtime <- as.numeric(timeSS_ungrouped)
-    grpRR_SS_ungrouped_summary$pf <- rep(as.numeric(grpRR_SS_ungrouped$EW_gamma), G)
-    grpRR_SS_ungrouped_summary$beta <- grpRR_SS_ungrouped$EW_beta
-    grpRR_SS_ungrouped_summary$intercept <- grpRR_SS_ungrouped$intercept
-    grpRR_SS_ungrouped_summary$sparsity <- rep(grpRR_SS_ungrouped$EW_pi, G)
-    grpRR_SS_ungrouped_summary$out <- grpRR_SS_ungrouped
-    summaryList$grpRR_SS_ungrouped <- grpRR_SS_ungrouped_summary
-    rm(grpRR_SS_ungrouped)
+    graper_SS_ungrouped_summary <- list()
+    graper_SS_ungrouped_summary$runtime <- as.numeric(timeSS_ungrouped)
+    graper_SS_ungrouped_summary$pf <- rep(as.numeric(graper_SS_ungrouped$EW_gamma), G)
+    graper_SS_ungrouped_summary$beta <- graper_SS_ungrouped$EW_beta
+    graper_SS_ungrouped_summary$intercept <- graper_SS_ungrouped$intercept
+    graper_SS_ungrouped_summary$sparsity <- rep(graper_SS_ungrouped$EW_pi, G)
+    graper_SS_ungrouped_summary$out <- graper_SS_ungrouped
+    summaryList$graper_SS_ungrouped <- graper_SS_ungrouped_summary
+    rm(graper_SS_ungrouped)
   }
 
   # ridge regression
@@ -591,12 +591,12 @@ runMethods <- function(Xtrain, ytrain, annot,
 #' \describe{
 #' \item{summaryList}{list with the fitted models for each method that was included in the comparison, such as
 #' \itemize{
-#' \item grpRR_SS (sparse grpRR model with factorized variational distribution)
-#' \item grpRR_FF (dense grpRR model with factorized variational distribution)
-#' \item grpRR (dense grpRR model with non-factorized variational distribution)
-#' \item grpRR_SScutoff (as grpRR_SS where coefficients with posterior inclusion probabilities below 0.5 are set to zero)
-#' \item grpRR_SS_nogamma (as grpRR_SS with a common slab precision across groups)
-#' \item grpRR_SS_ungrouped (as grpRR_SS without group annotation)
+#' \item graper_SS (sparse graper model with factorized variational distribution)
+#' \item graper_FF (dense graper model with factorized variational distribution)
+#' \item graper (dense graper model with non-factorized variational distribution)
+#' \item graper_SScutoff (as graper_SS where coefficients with posterior inclusion probabilities below 0.5 are set to zero)
+#' \item graper_SS_nogamma (as graper_SS with a common slab precision across groups)
+#' \item graper_SS_ungrouped (as graper_SS without group annotation)
 #' \item Ridge (ridge regression)
 #' \item Lasso (Lasso regression)
 #' \item ElasticNet (elastic net regression)
@@ -628,8 +628,8 @@ runMethods <- function(Xtrain, ytrain, annot,
 #' @details This function can be used to evaluate the fits of various method as produced by \code{\link{runMethods}} on a test dataset.
 #' If the true coefficients of the model are known they can be specified via \code{beta0} and \code{trueintercept}.
 #' Then, additionally the error on the estimates is evaluates as well as the feature selection performance.
-#' Note that for grpRR the selected features are determined by the posterior inclusion probabilities with
-#' a feature being called active for s>0.5 (The method grpRR_cutoff sets inactive with s<=0.5 coefficients to exactly zero).
+#' Note that for graper the selected features are determined by the posterior inclusion probabilities with
+#' a feature being called active for s>0.5 (The method graper_cutoff sets inactive with s<=0.5 coefficients to exactly zero).
 #' @importFrom stats predict
 #' @examples
 #' dat <- makeExampleData()
@@ -776,8 +776,8 @@ evaluateFits <- function(allFits, Xtest, ytest) {
 
 #' If the true coefficients of the model are known they can be specified via \code{beta0} and \code{trueintercept}.
 #' Then, additionally the error on the estimates is evaluates as well as the feature selection performance.
-#' Note that for grpRR the selected features are determined by the posterior inclusion probabilities with
-#' a feature being called active for s>0.5 (The method grpRR_cutoff sets inactive with s<=0.5 coefficients to exactly zero).
+#' Note that for graper the selected features are determined by the posterior inclusion probabilities with
+#' a feature being called active for s>0.5 (The method graper_cutoff sets inactive with s<=0.5 coefficients to exactly zero).
 #' @export
 #' @examples
 #' dat <- makeExampleData()

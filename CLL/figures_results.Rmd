@@ -15,7 +15,7 @@ library(plyr)
 library(cowplot)
 library(reshape2)
 options(stringsAsFactors = FALSE)
-library(grpRR)
+library(graper)
 library(tidyverse)
 library("wesanderson")
 library(ggbeeswarm)
@@ -70,9 +70,9 @@ ggplot(df_RMSE, aes(x=method, y=RMSE, fill=method)) +
         axis.title.x = element_blank())
 ```
 
-## Penalty Factors (in sparse grpRR)
+## Penalty Factors (in sparse graper)
 ```{r hyperparameters, fig.widht=8, fig.height=3}
-df_pf <- melt(lapply(resultList, function(l) l$pf_mat[, "grpRR_SS", drop=F]),
+df_pf <- melt(lapply(resultList, function(l) l$pf_mat[, "graper_SS", drop=F]),
               varnames = c("omic", "method"))
 df_pf$omic <-  c("Drugs", "Methylation","mRNA")[df_pf$omic]
 df_pf$value <- as.numeric(df_pf$value)
@@ -82,7 +82,7 @@ gg1 <- ggplot(df_pf,aes(x=omic, y=value)) + geom_boxplot() +
   guides(col=FALSE) + xlab("omic type") + 
   theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
 
-df_pf <- melt(lapply(resultList, function(l) l$sparsity_mat[, "grpRR_SS", drop=F]),
+df_pf <- melt(lapply(resultList, function(l) l$sparsity_mat[, "graper_SS", drop=F]),
               varnames = c("omic", "method"))
 df_pf$omic <-  c("Drugs", "Methylation","mRNA")[df_pf$omic]
 
@@ -101,7 +101,7 @@ df_time <- melt(time_mat,
                 varname=c("method", "fold"), value.name="time")
 
 # only compare to a single iteration (fitted using 3)
-df_time %<>% mutate(time=ifelse(grepl("grpRR", method), time/3/60, time/60))
+df_time %<>% mutate(time=ifelse(grepl("graper", method), time/3/60, time/60))
 
 # nice method names
 df_time %<>% mutate(method = make_nicenames(method))
@@ -139,8 +139,8 @@ getSelected <- function(resultList, methodnm){
 ```
 
 ```{r selected, eval=FALSE, echo= FALSE}
-## for grpRR_SS
-gg_grpRR <- getSelected(resultList, "grpRR_SScutoff")
+## for graper_SS
+gg_graper <- getSelected(resultList, "graper_SScutoff")
 
 ## for Lasso
 gg_Lasso <- getSelected(resultList, "Lasso") +
@@ -155,7 +155,7 @@ gg_IPF <- getSelected(resultList, "IPFLasso") +
   theme(axis.text.x = element_blank())
 
 # joint plot
-plot_grid(gg_grpRR, gg_Lasso, gg_IPF, gg_EN,
+plot_grid(gg_graper, gg_Lasso, gg_IPF, gg_EN,
           align="hv", axis = "lb")
 ```
 

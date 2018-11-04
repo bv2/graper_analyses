@@ -10,10 +10,10 @@ get_legend<-function(gg){
 
 
 make_nicenames <- function(nm){
-  ifelse(nm=="grpRR_SS", paste0(methodnm, " (sparse)"),
-         ifelse(nm=="grpRR", paste0(methodnm, " (dense, multiv.)"),
-                ifelse(nm=="grpRR_SS_ungrouped", paste0(methodnm, " (sparse, fact., no groups)"),
-                       ifelse(nm=="grpRR_FF", paste0(methodnm, " (dense)"),
+  ifelse(nm=="graper_SS", paste0(methodnm, " (sparse)"),
+         ifelse(nm=="graper", paste0(methodnm, " (dense, multiv.)"),
+                ifelse(nm=="graper_SS_ungrouped", paste0(methodnm, " (sparse, fact., no groups)"),
+                       ifelse(nm=="graper_FF", paste0(methodnm, " (dense)"),
                               ifelse(nm=="adaptiveLasso", "adaptive Lasso",
                                      ifelse(nm=="GroupLasso", "group Lasso",                                   
                                             ifelse(nm=="SparseGroupLasso", "sparse group Lasso",
@@ -22,14 +22,14 @@ make_nicenames <- function(nm){
                                                                  ifelse(nm=="Ridge", "ridge regression", as.character(nm)))))))))))
 }
 
-methodnm <- "grpRR"
+methodnm <- "graper"
 
-# methods2compare_sparse <- c("grpRR_SS", "Lasso", "grpRR_SS_ungrouped",
+# methods2compare_sparse <- c("graper_SS", "Lasso", "graper_SS_ungrouped",
 #                             "IPFLasso","adaptiveLasso", "ElasticNet",  "varbvs")
-methods2compare_sparse <- c("grpRR_SS", "Lasso", "SparseGroupLasso",
+methods2compare_sparse <- c("graper_SS", "Lasso", "SparseGroupLasso",
 "IPFLasso","adaptiveLasso", "ElasticNet",  "varbvs")
-methods2compare_dense <- c("Ridge", "grpRR_FF", "grpRR", "GRridge", "GroupLasso")
-# methods2compare_dense <- c("Ridge", "grpRR_FF", "grpRR", "GroupLasso")
+methods2compare_dense <- c("Ridge", "graper_FF", "graper", "GRridge", "GroupLasso")
+# methods2compare_dense <- c("Ridge", "graper_FF", "graper", "GroupLasso")
 
 methods2compare_sparse <- sapply(methods2compare_sparse, make_nicenames)
 methods2compare_dense <- sapply(methods2compare_dense, make_nicenames)

@@ -1,4 +1,4 @@
-library(grpRR)
+library(graper)
 library(tidyverse)
 library(SGL)
 library(parallel)
@@ -67,13 +67,13 @@ res <- mclapply(1:10, function(it){
   ytrain <- dat$y[1:n]
   # fit on the full dat sets to evaluate estimation of parameters
   fits <- runMethods(Xtrain, ytrain, dat$annot,
-                     include_grpRR_nonfacQ = TRUE, includeIPF = TRUE,
+                     include_graper_nonfacQ = TRUE, includeIPF = TRUE,
                      n_rep = 1 , th = 0.01, beta0 = dat$beta,
                      standardize=FALSE, includeGRridge = TRUE,
                      includeSparseGroupLasso = TRUE,
                      includeGroupLasso = TRUE, includeRF = TRUE,
                      includeAdaLasso = TRUE, includeVarbvs = TRUE,
-                     include_grpRR_SS_ungrouped = TRUE)
+                     include_graper_SS_ungrouped = TRUE)
   runtime <- sapply(fits$summaryList, function(l) l$runtime)
   betas <- sapply(fits$summaryList[names(fits$summaryList)!="RandomForest"], function(l) l$beta)
   MSE_beta <- 1/length(beta)*colSums((betas - dat$beta)^2)
@@ -87,8 +87,8 @@ res <- mclapply(1:10, function(it){
   # collect relevant performance meaasures
   data.frame(runtime= t(runtime),
              RMSE = t(RMSE),
-             gamma = t(fits$summaryList$grpRR_SS$pf),
-             pi = t(fits$summaryList$grpRR_SS$sparsity),
+             gamma = t(fits$summaryList$graper_SS$pf),
+             pi = t(fits$summaryList$graper_SS$sparsity),
              true.gamma = t(true.gamma),
              true.pi=t(true.pi),
              MSE_beta = t(MSE_beta))

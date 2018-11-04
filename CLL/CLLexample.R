@@ -1,4 +1,4 @@
-library(grpRR)
+library(graper)
 library(Matrix)
 library(varbvs)
 library(glmnet)
@@ -31,7 +31,7 @@ annot <- rep(1:3, times = ngr-c(5,0,0)) # group annotations to drugs, meth and R
 # compare regression methods in a cross-validation scheme
 resultList <- compareMethodsCV(X, y, annot, family="gaussian", ncores=10,
                          parallel=TRUE, plot_cv=FALSE, max_iter=5000, nfolds = 10,
-                         include_grpRR_nonfacQ = TRUE,
+                         include_graper_nonfacQ = TRUE,
                          includeSparseGroupLasso = TRUE,
                          includeGroupLasso = TRUE, includeIPF = TRUE,
                          includeGRridge=TRUE, includeAdaLasso = TRUE,

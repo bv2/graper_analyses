@@ -1,4 +1,4 @@
-library(grpRR)
+library(graper)
 library(tidyverse)
 library(SGL)
 library(parallel)
@@ -61,7 +61,7 @@ res <- mclapply(1:50, function(it){
   
   # fit on the full dat sets to evaluate estimation of parameters
   fits <- runMethods(Xtrain, ytrain, dat$annot,
-                     include_grpRR_nonfacQ = TRUE, includeIPF = TRUE,
+                     include_graper_nonfacQ = TRUE, includeIPF = TRUE,
                      n_rep=1 , th=0.01, beta0 = dat$beta,
                      standardize = FALSE, includeGRridge = TRUE,
                      includeVarbvs = TRUE, includeRF = FALSE,

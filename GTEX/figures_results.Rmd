@@ -17,7 +17,7 @@ library(plyr)
 library(cowplot)
 library(reshape2)
 options(stringsAsFactors = FALSE)
-library(grpRR)
+library(graper)
 library(tidyverse)
 library("wesanderson")
 library(ggbeeswarm)
@@ -72,9 +72,9 @@ ggplot(df_RMSE, aes(x=method, y=RMSE, fill=method)) +
         axis.title.x = element_blank())
 ```
 
-## Penalty Factors (in grpRR and related methods)
+## Penalty Factors (in graper and related methods)
 ```{r hyperparameters_all, fig.width=12, fig.height=12}
-methods4comp <- c("grpRR","grpRR_SS","grpRR_FF", "IPFLasso", "GRridge")
+methods4comp <- c("graper","graper_SS","graper_FF", "IPFLasso", "GRridge")
 df_pf <- melt(lapply(resultList, function(l) {
   nms <- rownames(l$pf_mat)
   m <- matrix(as.numeric(l$pf_mat[, methods4comp, drop=F]), ncol=length(methods4comp))
@@ -99,8 +99,8 @@ gg1
 
 
 ```{r hyperparameters, fig.width=12, fig.height=4, eval = FALSE, echo = FALSE}
-## Penalty Factors and sparsity level (only in sparse grpRR)
-df_pf <- melt(lapply(resultList, function(l) l$pf_mat[, "grpRR_SS", drop=F]),
+## Penalty Factors and sparsity level (only in sparse graper)
+df_pf <- melt(lapply(resultList, function(l) l$pf_mat[, "graper_SS", drop=F]),
               varnames = c("tissue", "method"))
 df_pf$value <- as.numeric(df_pf$value)
 
@@ -110,7 +110,7 @@ gg1 <- ggplot(df_pf,aes(x=tissue, y=value)) + geom_boxplot() +
   ggtitle ("Group-wise shrinkage") + theme_bw(base_size = 15) +
   scale_color_manual(values = cols4groups)
 
-df_pf <- melt(lapply(resultList, function(l) l$sparsity_mat[, "grpRR_SS", drop=F]),
+df_pf <- melt(lapply(resultList, function(l) l$sparsity_mat[, "graper_SS", drop=F]),
               varnames = c("tissue", "method"))
 gg2 <- ggplot(df_pf,aes(x=tissue, y=value)) + geom_boxplot() +
   ylab(expression(hat(pi))) + geom_beeswarm(aes(col=tissue))+
@@ -142,7 +142,7 @@ df_time <- melt(time_mat,
                 varname=c("method", "fold"), value.name="time")
 
 # only compare to a single iteration for each method (fitted using 3)
-df_time %<>% mutate(time=ifelse(grepl("grpRR", method), time/3/60, time/60))
+df_time %<>% mutate(time=ifelse(grepl("graper", method), time/3/60, time/60))
 
 # nice method names
 df_time %<>% mutate(method = make_nicenames(method))

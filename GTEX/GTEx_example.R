@@ -1,4 +1,4 @@
-library(grpRR)
+library(graper)
 library(Matrix)
 library(varbvs)
 library(glmnet)
@@ -18,7 +18,7 @@ data <- dataGTEx
 resultList <- compareMethodsCV(X=data$X, y=data$y, annot=data$annot,
                          seed=9876, family="gaussian", 
                          ncores=10, parallel=TRUE, plot_cv=FALSE,
-                         include_grpRR_nonfacQ = TRUE, max_iter = 5000, nfolds = 10,
+                         include_graper_nonfacQ = TRUE, max_iter = 5000, nfolds = 10,
                          includeSparseGroupLasso = TRUE,
                          includeGroupLasso = TRUE, includeIPF = TRUE,
                          includeGRridge=TRUE, includeAdaLasso = TRUE,

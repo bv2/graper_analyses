@@ -55,8 +55,8 @@ g_base <- getBaseParam("g")
 
 # Runtimes
 ```{r}
-methods_time <- c("grpRR_SS", "Lasso", "IPFLasso", "SparseGroupLasso",
-                  "varbvs", "grpRR_FF", "grpRR", "GRridge")
+methods_time <- c("graper_SS", "Lasso", "IPFLasso", "SparseGroupLasso",
+                  "varbvs", "graper_FF", "graper", "GRridge")
 
 df_time <- res_all %>% 
   filter(method %in% methods_time) %>%
