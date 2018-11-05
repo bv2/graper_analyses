@@ -1,5 +1,5 @@
 ---
-title: "CLL example: predicting drug responses using 3 omics (drug/mRNA/meth) on original scales"
+title: "CLL example: predicting drug responses using 3 omics (drug/mRNA/meth)"
 author: "Britta Velten"
 date: "12/07/2018"
 output:
@@ -103,6 +103,7 @@ ggPF
 plot_grid(ggRMSE, ggPF, ncol=1, labels = letters[1:2],
           label_size = 18, rel_heights = c(2,1))
 ```
+
 
 
 ```{r selected, eval = FALSE, echo =FALSE}
