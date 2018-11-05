@@ -37,7 +37,7 @@ resultList <- compareMethodsCV(X, y, annot, family="gaussian", ncores=10,
                          includeGroupLasso = TRUE, includeIPF = TRUE,
                          includeGRridge=TRUE, includeAdaLasso = TRUE,
                          includeVarbvs = TRUE, saveFits =TRUE,
-                         saveFits=FALSE, seed=9876, 
+                         saveFits=TRUE, seed=9876, 
                          th=0.01, n_rep=3, standardize = FALSE)
 
 # for debugging:

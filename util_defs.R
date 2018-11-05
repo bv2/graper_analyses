@@ -24,12 +24,9 @@ make_nicenames <- function(nm){
 
 methodnm <- "graper"
 
-# methods2compare_sparse <- c("graper_SS", "Lasso", "graper_SS_ungrouped",
-#                             "IPFLasso","adaptiveLasso", "ElasticNet",  "varbvs")
 methods2compare_sparse <- c("graper_SS", "Lasso", "SparseGroupLasso",
 "IPFLasso","adaptiveLasso", "ElasticNet",  "varbvs")
 methods2compare_dense <- c("Ridge", "graper_FF", "graper", "GRridge", "GroupLasso")
-# methods2compare_dense <- c("Ridge", "graper_FF", "graper", "GroupLasso")
 
 methods2compare_sparse <- sapply(methods2compare_sparse, make_nicenames)
 methods2compare_dense <- sapply(methods2compare_dense, make_nicenames)
