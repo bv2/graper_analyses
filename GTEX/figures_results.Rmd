@@ -98,7 +98,7 @@ gg1
 ```
 
 
-```{r hyperparameters, fig.width=12, fig.height=4, eval = TRUE, echo = TRUE}
+```{r hyperparameters, fig.width=12, fig.height=4}
 ## Penalty Factors and sparsity level (only in sparse graper)
 df_pf <- melt(lapply(resultList, function(l) l$pf_mat[, "graper_SS", drop=F]),
               varnames = c("tissue", "method"))
@@ -108,7 +108,7 @@ df_pf %<>% mutate(tissue=ifelse(tissue == "Adipose Tissue", "Adipose\n Tissue",
 gg1 <- ggplot(df_pf,aes(x=tissue, y=value)) + geom_boxplot() +
   ylab(expression(hat(gamma))) + geom_beeswarm(aes(col=tissue))+
   guides(col=FALSE) + xlab("tissue type") + 
-  ggtitle ("Group-wise shrinkage") + theme_bw(base_size = 15) +
+  theme_bw(base_size = 15) +
   scale_color_manual(values = cols4groups)
 
 df_pf <- melt(lapply(resultList, function(l) l$sparsity_mat[, "graper_SS", drop=F]),
@@ -117,25 +117,10 @@ df_pf %<>% mutate(tissue=ifelse(tissue == "Adipose Tissue", "Adipose\n Tissue",
                                 ifelse(tissue == "Blood Vessel", "Blood\n Vessel", as.character(tissue))))
 gg2 <- ggplot(df_pf,aes(x=tissue, y=value)) + geom_boxplot() +
   ylab(expression(hat(pi))) + geom_beeswarm(aes(col=tissue))+
-  xlab("tissue type") + ggtitle ("Percentage of active features")  +
+  xlab("tissue type") + 
   theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)
 
-plot_grid(gg1,gg2, rel_widths = c(1,1.5), nrow=1, align = "hv", axis = "lb")
-```
-
-```{r, eval=FALSE, echo= FALSE}
-# Investigate correlation of genes within each tissues
-tissueList <- lapply(unique(dataGTEx$annot), function(g){ 
-  dataGTEx$X[,dataGTEx$annot==g]
-})
-names(tissueList) <- unique(dataGTEx$annot)
-corList <- lapply(tissueList, cor)
-mcor <- sapply(corList, function(c) mean(as.numeric(abs(c))))
-
-# plot mean penalty factor across folds vs correlation
-mpf <- df_pf %>% group_by(tissue) %>% dplyr::summarize(mpf = mean(value))
-mpf$mcor <- mcor[mpf$tissue]
-ggplot(mpf, aes(x=mcor, y=mpf, col=tissue)) + geom_point()
+plot_grid(gg1,gg2, rel_widths = c(1,1.25), nrow=1, align = "hv", axis = "lb")
 ```
 
 ## Runtime
