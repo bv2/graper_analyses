@@ -28,13 +28,13 @@ source("../util_defs.R") # contains color schemes and methods to include
 Set input/output paths.
 ```{r}
 datadir <- "data"
-outdir <- "2018-07-27"
+outdir <- "2018-11-05"
 knitr::opts_chunk$set(fig.path = "figs/", dev = c('png',"pdf"))
 ```
 
 Load data used for fitting.
 ```{r}
-load(file.path(datadir, "dataGTEx_t5_union_hvg_small.RData"))
+load(file.path(datadir, "dataGTEx_t5_PCs.RData"))
 dim(dataGTEx$X)
 ```
 
@@ -98,12 +98,13 @@ gg1
 ```
 
 
-```{r hyperparameters, fig.width=12, fig.height=4, eval = FALSE, echo = FALSE}
+```{r hyperparameters, fig.width=12, fig.height=4, eval = TRUE, echo = TRUE}
 ## Penalty Factors and sparsity level (only in sparse graper)
 df_pf <- melt(lapply(resultList, function(l) l$pf_mat[, "graper_SS", drop=F]),
               varnames = c("tissue", "method"))
 df_pf$value <- as.numeric(df_pf$value)
-
+df_pf %<>% mutate(tissue=ifelse(tissue == "Adipose Tissue", "Adipose\n Tissue",
+                                ifelse(tissue == "Blood Vessel", "Blood\n Vessel", as.character(tissue))))
 gg1 <- ggplot(df_pf,aes(x=tissue, y=value)) + geom_boxplot() +
   ylab(expression(hat(gamma))) + geom_beeswarm(aes(col=tissue))+
   guides(col=FALSE) + xlab("tissue type") + 
@@ -112,6 +113,8 @@ gg1 <- ggplot(df_pf,aes(x=tissue, y=value)) + geom_boxplot() +
 
 df_pf <- melt(lapply(resultList, function(l) l$sparsity_mat[, "graper_SS", drop=F]),
               varnames = c("tissue", "method"))
+df_pf %<>% mutate(tissue=ifelse(tissue == "Adipose Tissue", "Adipose\n Tissue",
+                                ifelse(tissue == "Blood Vessel", "Blood\n Vessel", as.character(tissue))))
 gg2 <- ggplot(df_pf,aes(x=tissue, y=value)) + geom_boxplot() +
   ylab(expression(hat(pi))) + geom_beeswarm(aes(col=tissue))+
   xlab("tissue type") + ggtitle ("Percentage of active features")  +

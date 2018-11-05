@@ -28,6 +28,7 @@ X <- CLL_data[,!grepl("D_002", colnames(CLL_data))]
 y <- rowMeans(CLL_data[,grepl("D_002", colnames(CLL_data))])
 annot <- rep(1:3, times = ngr-c(5,0,0)) # group annotations to drugs, meth and RNA
 
+
 # compare regression methods in a cross-validation scheme
 resultList <- compareMethodsCV(X, y, annot, family="gaussian", ncores=10,
                          parallel=TRUE, plot_cv=FALSE, max_iter=5000, nfolds = 10,
@@ -35,7 +36,7 @@ resultList <- compareMethodsCV(X, y, annot, family="gaussian", ncores=10,
                          includeSparseGroupLasso = TRUE,
                          includeGroupLasso = TRUE, includeIPF = TRUE,
                          includeGRridge=TRUE, includeAdaLasso = TRUE,
-                         includeVarbvs = TRUE,
+                         includeVarbvs = TRUE, saveFits =TRUE,
                          saveFits=FALSE, seed=9876, 
                          th=0.01, n_rep=3, standardize = FALSE)
 

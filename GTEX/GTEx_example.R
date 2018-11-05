@@ -17,12 +17,12 @@ data <- dataGTEx
 # compare regression methods in a cross-validation scheme
 resultList <- compareMethodsCV(X=data$X, y=data$y, annot=data$annot,
                          seed=9876, family="gaussian", 
-                         ncores=10, parallel=TRUE, plot_cv=FALSE,
+                         ncores=10, parallel=FALSE, plot_cv=FALSE,
                          include_graper_nonfacQ = TRUE, max_iter = 5000, nfolds = 10,
                          includeSparseGroupLasso = TRUE,
                          includeGroupLasso = TRUE, includeIPF = TRUE,
                          includeGRridge=TRUE, includeAdaLasso = TRUE,
-                         includeVarbvs = TRUE,
+                         includeVarbvs = TRUE, saveFits =TRUE,
                          th = 0.01, n_rep = 3, standardize = TRUE)
 
 # for debugging:

@@ -98,7 +98,7 @@ res <- mclapply(1:10, function(it){
 print(res[[1]])
 
 # save results
-outdir <- paste0("all_",as.character(Sys.Date()))
+outdir <- as.character(Sys.Date())
 if(!dir.exists(outdir)) dir.create(outdir)
 save(res, file=file.path(outdir, paste0(nm, ".RData")))
 

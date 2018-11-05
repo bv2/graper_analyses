@@ -26,7 +26,7 @@ source("../util_defs.R") # contains color schemes and defines which methods to i
 Set input/output paths.
 ```{r}
 datadir <- "data"
-outdir <- "2018-07-29"
+outdir <- "2018-11-04"
 knitr::opts_chunk$set(fig.path = "figs/", dev = c('png',"pdf"))
 ```
 
