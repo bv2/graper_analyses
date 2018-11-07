@@ -55,7 +55,7 @@ res$RMSE <- sqrt(res$MSE)
 
 
 # Plot
-```{r example_std}
+```{r example_std, fig.width=8, fig.height=3.5}
 ggplot(res, aes(x=method, y=RMSE, fill = method)) +
   geom_boxplot() +theme_bw(base_size = 18) +
   facet_wrap(~type, scales = "free_x") +
