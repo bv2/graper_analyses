@@ -1,0 +1,65 @@
+---
+title: 'Simulation example: Problems of standardisation'
+author: "Britta Velten"
+date: "07/11/2018"
+output:
+  BiocStyle::html_document:
+    toc: true
+---
+
+This vignette illustrates that standardization of predictors can be suboptimal in the case where we measure high-amplitude features that are informative together with low-amplitude features that are uninformative.
+
+```{r}
+library(glmnet)
+library(tidyverse)
+knitr::opts_chunk$set(fig.path = "figs/", dev = c('png',"pdf"))
+```
+
+# Simulation parameters
+```{r}
+n_test <- 500
+n_train <- 500
+n <- n_test + n_train
+p_high <- 300  # number of high-amplitue features that carry information on y
+p_low <- 300 # number of noisy, low-amplitue features that do not carry information on y
+beta <- c(rep(1,p_high), rep(0,p_low))
+amp_high <- 10
+amp_low <- 1
+```
+
+# Simulation and Lasso or ridge regression
+Features are simulated from a normal distribution and multiplied by either a high or low amplitude value.
+```{r}
+set.seed(9876)
+res <- lapply(1:10, function(it) {
+  X_high <- matrix(rnorm(n*p_high),n, p_high) * amp_high
+  X_low <- matrix(rnorm(n*p_low),n, p_low) * amp_low
+  X <- cbind(X_high, X_low)
+  y <-  X %*% beta + rnorm(n,0,1)
+  fit <- cv.glmnet(X[1:n_train,],y[1:n_train])
+  fit_unstd <- cv.glmnet(X[1:n_train,],y[1:n_train], standardize = FALSE)
+  MSE_std <- sum((predict(fit, X[(n_train+1):n,]) - y[(n_train+1):n])^2)/length(n_test)
+  MSE_unstd <- sum((predict(fit_unstd, X[(n_train+1):n,]) - y[(n_train+1):n])^2)/length(n_test)
+  
+  fit <- cv.glmnet(X[1:n_train,],y[1:n_train], alpha=0)
+  fit_unstd <- cv.glmnet(X[1:n_train,],y[1:n_train], standardize = FALSE, alpha=0)
+  Ridge_MSE_std <- sum((predict(fit, X[(n_train+1):n,]) - y[(n_train+1):n])^2)/length(n_test)
+  Ridge_MSE_unstd <- sum((predict(fit_unstd, X[(n_train+1):n,]) - y[(n_train+1):n])^2)/length(n_test)
+  data.frame(MSE = c(MSE_std, MSE_unstd, Ridge_MSE_std,Ridge_MSE_unstd),
+             method = c("standardized", "unstandardized", "standardized", "unstandardized"),
+             type= c("Lasso", "Lasso", 'Ridge', "Ridge"),
+             it =it)
+}) %>% bind_rows()
+res$RMSE <- sqrt(res$MSE)
+```
+
+
+# Plot
+```{r example_std}
+ggplot(res, aes(x=method, y=RMSE, fill = method)) +
+  geom_boxplot() +theme_bw(base_size = 18) +
+  facet_wrap(~type, scales = "free_x") +
+  scale_fill_manual(values = c(standardized = "cornflowerblue", unstandardized = "forestgreen")) + 
+  guides(fill=FALSE) + xlab("")
+```
+
