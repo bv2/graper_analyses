@@ -1,0 +1,203 @@
+---
+title: "Illustration of graper simulation results (talks)"
+author: "Britta Velten"
+date: "2/18/2019"
+output: BiocStyle::html_document
+---
+
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library("wesanderson")
+library(RColorBrewer)
+source("../util_defs.R") # contains color schemes and methods to include
+```
+
+# Perparations
+Set input/output paths.
+```{r}
+datadir <- "data"
+outdir <- "2018-11-05"
+knitr::opts_chunk$set(fig.path = "figs/", dev = c('png',"pdf"))
+```
+
+```{r}
+cols4groups <- RColorBrewer::brewer.pal(8,"Paired")[c(1:4, 7:8)]
+# cols4groups <- c(wes_palette("GrandBudapest1"),wes_palette("GrandBudapest2")[1:2])
+names(cols4groups) <- 1:6
+```
+
+Load useful R objects
+```{r}
+files <- list.files(paste0(outdir, "_Robj"))
+for(fnm in files) load(file.path(paste0(outdir, "_Robj"), fnm))
+```
+
+
+# RMSE plot with smaller scale comparison
+RMSE plot for comparison with standard methods only
+```{r, fig.width=10, fig.height=3}
+cols4methods <- RColorBrewer::brewer.pal(8, "Dark2")[c(1,4,2,6)] #c("navy", "red", "brown", "orange")
+names(cols4methods) <- c("Lasso", "graper", "ridge regression", "elastic net")
+
+ggRMSE_p <- df_RMSE %>%
+    mutate(method = ifelse(method == "graper (sparse)", "graper", method)) %>%
+    filter(method %in% names(cols4methods)) %>%
+  filter(n==n_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=p, y=RMSE, col=method)) + #geom_vline(xintercept = p_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +ylab(bquote(RMSE (hat(y))))+
+  stat_summary(fun.y = mean, geom = "line") +
+  #facet_wrap(~method_type, scales="fixed") + 
+  scale_x_continuous(breaks = seq(0,2000,500)) + scale_color_manual(values = cols4methods)+
+  theme_bw(base_size = 15) + guides(col=FALSE, lty= FALSE)# +facet_wrap(~method_type, ncol=1)
+
+ggRMSE_n <- df_RMSE %>%
+        mutate(method = ifelse(method == "graper (sparse)", "graper", method)) %>%
+    filter(method %in% names(cols4methods)) %>%
+    filter(p==p_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=n, y=RMSE, col=method)) + #geom_vline(xintercept = n_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +ylab(bquote(RMSE (hat(y))))+
+  stat_summary(fun.y = mean, geom = "line") +
+  #facet_wrap(~method_type, scales="fixed") +
+  scale_x_continuous(breaks = seq(0,500,250)) + scale_color_manual(values = cols4methods)+
+  theme_bw(base_size = 15)#+facet_wrap(~method_type, ncol=1) + ylab("")
+
+ggRMSE_rho <- df_RMSE %>%
+        mutate(method = ifelse(method == "graper (sparse)", "graper", method)) %>%
+    filter(method %in% names(cols4methods)) %>%
+  filter(n==n_base, p == p_base, pi_low == pi_low_base, tau==tau_base) %>%
+  ggplot(aes(x=rho, y=RMSE, col=method)) + #geom_vline(xintercept = n_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +ylab(bquote(RMSE (hat(y))))+
+  stat_summary(fun.y = mean, geom = "line") + xlab(expression(rho)) + 
+  #facet_wrap(~method_type, scales="fixed") +
+scale_color_manual(values = cols4methods)+
+    scale_x_continuous(breaks = c(0,0.3,0.6,0.9))+
+  theme_bw(base_size = 15)+ guides(col=FALSE, lty= FALSE)#+facet_wrap(~method_type, ncol=1) + ylab("")
+
+ggRMSE_pi <- df_RMSE %>%
+        mutate(method = ifelse(method == "graper (sparse)", "graper", method)) %>%
+    filter(method %in% names(cols4methods)) %>%
+  filter(n==n_base, p == p_base, rho == rho_base, tau==tau_base) %>% 
+  ggplot(aes(x=pi_low, y=RMSE, col=method)) + #geom_vline(xintercept = n_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +ylab(bquote(RMSE (hat(y))))+
+    xlab("sparisty level") +
+  stat_summary(fun.y = mean, geom = "line") +
+  #facet_wrap(~method_type, scales="fixed") +
+        scale_x_continuous(breaks = seq(0,1,0.5))+
+ scale_color_manual(values = cols4methods) + xlab("sparsity") + 
+  theme_bw(base_size = 15)+ guides(col=FALSE, lty= FALSE)#+facet_wrap(~method_type, ncol=1) + ylab("")
+
+
+gg <- cowplot::plot_grid(ggRMSE_p, ggRMSE_n+ guides(col=FALSE, lty= FALSE), ggRMSE_rho,
+                   get_legend(ggRMSE_n), nrow = 1, rel_widths = c(1,1,1,0.6))
+gg
+pdf("figs_talks/MSE_graper.pdf", width = 10, height = 2.5)
+gg
+dev.off()
+
+gg <- cowplot::plot_grid(ggRMSE_p, ggRMSE_n+ guides(col=FALSE, lty= FALSE),
+                         ggRMSE_pi, ggRMSE_rho,
+                   get_legend(ggRMSE_n), nrow = 1, rel_widths = c(1,1,1,1,0.6))
+gg
+pdf("figs_talks/MSE_graper_details.pdf", width = 12, height = 2.5)
+gg
+dev.off()
+```
+
+# RMSE plot with to compare MFA
+```{r, fig.width=10, fig.height=2.5}
+cols4methodsMFA <- c(RColorBrewer::brewer.pal(8, "Dark2")[c(4,7)], "black")
+names(cols4methodsMFA) <- c("graper", "graper (dense)", "graper (dense, mv.)")
+
+df_RMSE_MFA <- df_RMSE %>%
+    mutate(method = ifelse(method == "graper (sparse)", "graper", method)) %>%
+    mutate(method = ifelse(method == "graper (dense, multiv.)", "graper (dense, mv.)", method)) %>%
+    filter(method %in% names(cols4methodsMFA))
+
+ggRMSE_p <-  df_RMSE_MFA %>%
+  filter(n==n_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=p, y=RMSE, col=method)) + #geom_vline(xintercept = p_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +ylab(bquote(RMSE (hat(y))))+
+  stat_summary(fun.y = mean, geom = "line") +
+  #facet_wrap(~method_type, scales="fixed") + 
+  scale_x_continuous(breaks = seq(0,2000,500)) + scale_color_manual(values = cols4methodsMFA)+
+  theme_bw(base_size = 15) + guides(col=FALSE, lty= FALSE)# +facet_wrap(~method_type, ncol=1)
+
+ggRMSE_n <- df_RMSE_MFA %>%
+    filter(p==p_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=n, y=RMSE, col=method)) + #geom_vline(xintercept = n_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +ylab(bquote(RMSE (hat(y))))+
+  stat_summary(fun.y = mean, geom = "line") +
+  #facet_wrap(~method_type, scales="fixed") +
+  scale_x_continuous(breaks = seq(0,500,250)) + scale_color_manual(values = cols4methodsMFA)+
+  theme_bw(base_size = 15)#+facet_wrap(~method_type, ncol=1) + ylab("")
+
+ggRMSE_rho <- df_RMSE_MFA %>%
+  filter(n==n_base, p == p_base, pi_low == pi_low_base, tau==tau_base) %>%
+  ggplot(aes(x=rho, y=RMSE, col=method)) + #geom_vline(xintercept = n_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +ylab(bquote(RMSE (hat(y))))+
+  stat_summary(fun.y = mean, geom = "line") + xlab(expression(rho)) + 
+  #facet_wrap(~method_type, scales="fixed") +
+scale_color_manual(values = cols4methodsMFA)+
+    scale_x_continuous(breaks = c(0,0.3,0.6,0.9))+
+  theme_bw(base_size = 15)+ guides(col=FALSE, lty= FALSE)#+facet_wrap(~method_type, ncol=1) + ylab("")
+
+ggRMSE_pi <- df_RMSE_MFA %>%
+  filter(n==n_base, p == p_base, rho == rho_base, tau==tau_base) %>% 
+  ggplot(aes(x=pi_low, y=RMSE, col=method)) + #geom_vline(xintercept = n_base, lty="dashed") + 
+  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +ylab(bquote(RMSE (hat(y))))+
+    xlab("sparisty level") +
+  stat_summary(fun.y = mean, geom = "line") +
+  #facet_wrap(~method_type, scales="fixed") +
+        scale_x_continuous(breaks = seq(0,1,0.5))+
+ scale_color_manual(values = cols4methodsMFA) + xlab("sparsity") + 
+  theme_bw(base_size = 15)+ guides(col=FALSE, lty= FALSE) #+facet_wrap(~method_type, ncol=1) + ylab("")
+
+
+gg <- cowplot::plot_grid(ggRMSE_p, ggRMSE_n+ guides(col=FALSE, lty= FALSE), ggRMSE_rho,
+                   get_legend(ggRMSE_n), nrow = 1, rel_widths = c(1,1,1,0.7))
+gg
+pdf("figs_talks/MSE_comparisonMFA_graper.pdf", width = 10, height = 2.5)
+gg
+dev.off()
+
+gg <- cowplot::plot_grid(ggRMSE_p, ggRMSE_n+ guides(col=FALSE, lty= FALSE),
+                         ggRMSE_pi, ggRMSE_rho,
+                   get_legend(ggRMSE_n), nrow = 1, rel_widths = c(1,1,1,1,0.7))
+gg
+
+pdf("figs_talks/MSE_comparisonMFA_graper_details.pdf", width = 12, height = 2.5)
+gg
+dev.off()
+```
+
+
+# Hyperparameters plot (asymptotics in n for fixed p)
+```{r, fig.height=2.5, fig.width=8}
+gggamma_n <- df_gamma_joint %>%
+  filter(p==p_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=n, y=gamma, col=group)) + #geom_vline(xintercept = n_base, lty="dashed") + 
+  geom_hline(aes(yintercept = gamma_true)) +
+  stat_summary(geom = "line") + geom_point(size=0.5) +
+  facet_wrap(~gamma_true, nrow=1) + ylab(expression(hat(gamma))) + 
+  scale_x_continuous(breaks = seq(0,1000,200)) + scale_y_log10()+
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)+ guides( col = FALSE)
+
+ggpi_n <- df_pi_joint %>% 
+  filter(p==p_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
+  ggplot(aes(x=n, y=pi, col=group)) + #geom_vline(xintercept = n_base, lty="dashed") + 
+  geom_hline(aes(yintercept = pi_true)) +ylim(c(0,1))+
+  stat_summary(geom = "line") + geom_point(size=0.5) +
+  facet_wrap(~ pi_true, nrow=1) + ylab(expression(hat(pi))) +
+  scale_x_continuous(breaks = seq(0,1000,200)) +
+  theme_bw(base_size = 15) + scale_color_manual(values = cols4groups)+ guides( col = FALSE)
+
+gg <- cowplot::plot_grid(gggamma_n, ggpi_n, rel_widths = c(3,2))
+gg
+pdf("figs_talks/hyperparam_n.pdf", height=2.5, width=8)
+gg
+dev.off()
+```
+
+
+

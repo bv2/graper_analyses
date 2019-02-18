@@ -72,6 +72,11 @@ p_base <- getBaseParam("pg")*n_groups
 pi_low_base <- getBaseParam("pi_low")
 rho_base <-  getBaseParam("rho")
 tau_base <- getBaseParam("tau")
+
+if(!dir.exists(paste0(outdir,"_Robj"))) dir.create(paste0(outdir,"_Robj"))
+save(n_base,p_base,pi_low_base,rho_base,tau_base,
+     file = paste0(outdir,"_Robj/base_param.Rdata"))
+
 ```
 
 # RMSE
@@ -83,7 +88,6 @@ df_RMSE <- res_all %>% select(c(base_cols, RMSE_cols)) %>%
   mutate(method_type=ifelse(method%in% methods2compare_sparse, "sparse", "dense"))  %>%
   filter(method %in% methods2compare_sparse | method %in% methods2compare_dense) 
 
-if(!dir.exists(paste0(outdir,"_Robj"))) dir.create(paste0(outdir,"_Robj"))
 save(df_RMSE, file = paste0(outdir,"_Robj/df_RMSE.Rdata"))
 
 ggRMSE_n <- df_RMSE %>%
