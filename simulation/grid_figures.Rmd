@@ -83,6 +83,9 @@ df_RMSE <- res_all %>% select(c(base_cols, RMSE_cols)) %>%
   mutate(method_type=ifelse(method%in% methods2compare_sparse, "sparse", "dense"))  %>%
   filter(method %in% methods2compare_sparse | method %in% methods2compare_dense) 
 
+if(!dir.exists(paste0(outdir,"_Robj"))) dir.create(paste0(outdir,"_Robj"))
+save(df_RMSE, file = paste0(outdir,"_Robj/df_RMSE.Rdata"))
+
 ggRMSE_n <- df_RMSE %>%
   filter(p==p_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
   ggplot(aes(x=n, y=RMSE, col=method)) + #geom_vline(xintercept = n_base, lty="dashed") + 
@@ -152,6 +155,8 @@ df_MSEbeta <- res_all %>% select(c(base_cols, betaMSE_cols)) %>%
   mutate(method = make_nicenames(method)) %>%
   mutate(method_type=ifelse(method %in% methods2compare_sparse, "sparse", "dense"))  %>%
   filter(method %in% methods2compare_sparse | method %in% methods2compare_dense)
+
+save(df_MSEbeta, file = paste0(outdir,"_Robj/df_MSEbeta.Rdata"))
 
 ggMSEbeta_n <- df_MSEbeta %>%
   filter(p==p_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
@@ -246,6 +251,8 @@ df_pi <- dplyr::select(res_all, c(base_cols, pi_cols)) %>%
 df_pi_joint <- plyr::join(df_pi, df_pi_true, by=c(base_cols,"group"))
 df_pi_joint <- mutate(df_pi_joint, sparse_group = group %in% c(1,3,5))
 
+save(df_pi_joint, file = paste0(outdir,"_Robj/df_pi_joint.Rdata"))
+
 ggpi_n <- df_pi_joint %>%
   filter(p==p_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
   ggplot(aes(x=n, y=pi, col=group)) + #geom_vline(xintercept = n_base, lty="dashed") + 
@@ -307,6 +314,8 @@ df_gamma <- select(res_all, c(base_cols, gamma_cols)) %>%
   gather(key="group", value="gamma", gamma_cols)%>%
   mutate(group = sub("gamma.","", group))
 df_gamma_joint <- plyr::join(df_gamma, df_gamma_true, by=c(base_cols,"group"))
+
+save(df_gamma_joint, file = paste0(outdir,"_Robj/df_gamma_joint.RData"))
 
 gggamma_n <- df_gamma_joint %>%
   filter(p==p_base, pi_low == pi_low_base, rho == rho_base, tau==tau_base) %>%
