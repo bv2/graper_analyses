@@ -64,46 +64,6 @@ df_time <- res_all %>%
     mutate(method = make_nicenames(method))
 ```
 
-```{r time, fig.width=11, fig.height= 3, eval = FALSE, echo=FALSE}
-ggtime_n <- df_time %>%
-  filter(p==p_base, g == g_base) %>%
-  ggplot(aes(x=n, y=runtime/60, col=method)) +
-  # geom_smooth(method="loess",method.args = list(degree=0, span=10), se=FALSE) +
-  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
-  stat_summary(fun.y = mean, geom = "line") +
-  ylab("time [min]") +
-  # scale_x_continuous(breaks = seq(0,1000,200)) +
-  scale_y_log10()+
-  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods) +
-  theme(axis.title.y = element_blank())
-
-ggtime_p <- df_time %>%
-  filter(n==n_base, g == g_base) %>%
-  ggplot(aes(x=p, y=runtime/60, col=method)) +
-  # geom_smooth(method="loess",method.args = list(degree=0, span=10), se=FALSE) +
-  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
-  stat_summary(fun.y = mean, geom = "line")  +
-  ylab("time [min]")+ scale_y_log10() +
-  scale_x_continuous(breaks = c(1000,3000,5000)) +
-  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods)
-
-ggtime_g <- df_time %>%
-  filter(n==n_base, p == p_base) %>%
-  ggplot(aes(x=g, y=runtime/60, col=method)) +
-  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
-  # geom_smooth(method="loess",method.args = list(degree=0, span=10), se=FALSE) +
-  stat_summary(fun.y = mean, geom = "line")  +
-  ylab("time [min]")+ scale_y_log10()+ xlab("G") + 
-  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods)+
-  theme(axis.title.y = element_blank())
-
-gg_legend <- get_legend(ggtime_n)
-
-cowplot::plot_grid(ggtime_p + guides(col=FALSE), ggtime_n  + guides(col=FALSE),
-                   ggtime_g  + guides(col=FALSE),
-                   gg_legend, ncol=4, rel_widths = c(1.1,1,1,0.9))
-```
-
 ```{r time_joint, fig.width=10, fig.height=3}
 df_time %<>% mutate(vary_param = ifelse(n==n_base, ifelse(p == p_base, "G","p"), "n"))
 df_time %<>% mutate(value = ifelse(vary_param == "n", n, ifelse(vary_param=="p", p, g)))
@@ -122,19 +82,15 @@ df_time %>%
   scale_x_continuous(breaks=scales::pretty_breaks(3))
 ```
 
-```{r time_noIPF, fig.width=10, fig.height=3, eval = FALSE, echo = FALSE}
-# Withou IPF-Lasso and linear axis
-df_time %>% filter(method != "IPF-Lasso") %>%
-  ggplot(aes(x=value, y=runtime/60, col=method)) +
-  stat_summary(fun.data = mean_se, geom="errorbar", width=0) +
-  # geom_smooth(method="loess",method.args = list(degree=0, span=10), se=FALSE) +
-  stat_summary(fun.y = mean, geom = "line")  +
-  facet_wrap(~vary_param, scales = "free_x",strip.position = "bottom") +
-  ylab("time [min]")+ 
-  theme_bw(base_size = 15) + scale_color_manual(values = cols4methods) +
-  xlab("") +
-  theme(strip.background = element_blank(), strip.placement = "outside") +
-  scale_x_continuous(breaks=scales::pretty_breaks(3))
+```{r time_5se, fig.width=10, fig.height=3, eval = FALSE, echo = FALSE}
+df_time %>% #filter(method == "graper (sparse)", vary_param == "p") %>%
+    ggplot(aes(x=value, y=runtime/60, col = method)) + 
+    stat_summary(fun.data = mean_se, geom="errorbar", width=0, fun.args = list(mult = 5)) +
+    stat_summary(fun.y = mean, geom = "line")  +
+    ylab("time [min]") +theme_bw(base_size = 15) +
+    facet_wrap(~vary_param, scales = "free_x",strip.position = "bottom") +
+    scale_y_log10() +  xlab("") + scale_color_manual(values = cols4methods)+
+    theme(strip.background = element_blank(), strip.placement = "outside")
 ```
 
 # SessionInfo
