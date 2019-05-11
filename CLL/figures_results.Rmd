@@ -62,9 +62,9 @@ df_RMSE %<>% filter(method %in% methods2compare_sparse |
 
 # plot 
 ggRMSE <- ggplot(df_RMSE, aes(x=method, y=RMSE, fill=method)) +
-  geom_boxplot(alpha=0.5) + 
+  geom_boxplot(alpha=0.5, outlier.shape = NA) + 
   # ggtitle ("Prediction of ibrutinib response")  +
-  geom_point() + facet_wrap(~method_type, scale="free_x") +
+  geom_beeswarm(cex=2.5) + facet_wrap(~method_type, scale="free_x") +
   scale_fill_manual(values = cols4methods) +
   theme(axis.text.x = element_text(angle=60, vjust=1, hjust=1),
         axis.title.x = element_blank()) + guides(fill= FALSE)
@@ -78,8 +78,8 @@ df_pf <- melt(lapply(resultList, function(l) l$pf_mat[, "graper_SS", drop=F]),
 df_pf$omic <-  c("Drugs", "Methylation","mRNA")[df_pf$omic]
 df_pf$value <- as.numeric(df_pf$value)
 
-gg1 <- ggplot(df_pf,aes(x=omic, y=value)) + geom_boxplot() +
-  ylab(expression(hat(gamma))) + geom_beeswarm(aes(col=omic)) +
+gg1 <- ggplot(df_pf,aes(x=omic, y=value)) + geom_boxplot(alpha=0.5, outlier.shape = NA) +
+  ylab(expression(hat(gamma))) + geom_beeswarm(aes(col=omic), cex=2.5) +
   guides(col=FALSE) + xlab("omic type") + 
   theme_bw(base_size = 15) + scale_color_manual(values = cols4groups) +
   guides(col=FALSE)
@@ -88,8 +88,9 @@ df_pf <- melt(lapply(resultList, function(l) l$sparsity_mat[, "graper_SS", drop=
               varnames = c("omic", "method"))
 df_pf$omic <-  c("Drugs", "Methylation","mRNA")[df_pf$omic]
 
-gg2 <- ggplot(df_pf,aes(x=omic, y=value)) + geom_boxplot() +
-  ylab(expression(hat(pi))) + geom_beeswarm(aes(col=omic))+ xlab("omic type") + 
+gg2 <- ggplot(df_pf,aes(x=omic, y=value)) + geom_boxplot(alpha=0.5, outlier.shape = NA) +
+  ylab(expression(hat(pi))) + geom_beeswarm(aes(col=omic), cex = 2.5)+
+    xlab("omic type") + 
   theme_bw(base_size = 15) +
   scale_color_manual(values = cols4groups) +
   guides(col=FALSE)

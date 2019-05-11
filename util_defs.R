@@ -42,6 +42,6 @@ cols4methods[c(1,9,10)] <- c("cornflowerblue","cyan4",  "navy")
 cols4methods[c(2,4,5,6)] <- c("darkgoldenrod1", "darkorange3", "coral2", "brown")
 cols4methods[c(8,11)] <- c("deeppink2", "darkmagenta")
 cols4methods[c(3, 12)] <- c("burlywood3", "chocolate4")
-cols4methods[c(7)] <- "black"
+cols4methods[c(7)] <- "darkgrey"
 
 names(cols4methods) <- c(methods2compare_sparse, methods2compare_dense)
