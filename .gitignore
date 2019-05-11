@@ -9,4 +9,6 @@
 *.log
 *.pdfsync
 *.gz
+*.txt
 data
+*.html
