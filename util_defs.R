@@ -8,6 +8,7 @@ get_legend<-function(gg){
   return(legend)
 }
 
+methodnm <- "graper"
 
 make_nicenames <- function(nm){
   ifelse(nm=="graper_SS", paste0(methodnm, " (sparse)"),
@@ -22,7 +23,7 @@ make_nicenames <- function(nm){
                                                                  ifelse(nm=="Ridge", "ridge regression", as.character(nm)))))))))))
 }
 
-methodnm <- "graper"
+
 
 methods2compare_sparse <- c("graper_SS", "Lasso", "SparseGroupLasso",
 "IPFLasso","adaptiveLasso", "ElasticNet",  "varbvs")
@@ -32,8 +33,15 @@ methods2compare_sparse <- sapply(methods2compare_sparse, make_nicenames)
 methods2compare_dense <- sapply(methods2compare_dense, make_nicenames)
 
 
-cols4methods <- c(c(wes_palette("Darjeeling1"),
-                    wes_palette("Darjeeling2")[-c(1,3,4)])[1:length(methods2compare_sparse)],
-                  brewer.pal(8,"Set1")[c(1,2,4,5,7)])
+# cols4methods <- c(c(wes_palette("Darjeeling1"),
+#                     wes_palette("Darjeeling2")[-c(1,3,4)])[1:length(methods2compare_sparse)],
+#                   brewer.pal(8,"Set1")[c(1,2,4,5,7)])
+
+cols4methods <- rep("gray", 12)
+cols4methods[c(1,9,10)] <- c("cornflowerblue","cyan4",  "navy")
+cols4methods[c(2,4,5,6)] <- c("darkgoldenrod1", "darkorange3", "coral2", "brown")
+cols4methods[c(8,11)] <- c("deeppink2", "darkmagenta")
+cols4methods[c(3, 12)] <- c("burlywood3", "chocolate4")
+cols4methods[c(7)] <- "black"
 
 names(cols4methods) <- c(methods2compare_sparse, methods2compare_dense)

@@ -59,8 +59,9 @@ methods_time <- c("graper_SS", "Lasso", "IPFLasso", "SparseGroupLasso",
                   "varbvs", "graper_FF", "graper", "GRridge")
 
 df_time <- res_all %>% 
-  filter(method %in% methods_time) %>%
-  mutate(method = make_nicenames(method))
+    mutate(method = sub("grpRR", "graper", method)) %>% # replace old name
+    filter(method %in% methods_time) %>%
+    mutate(method = make_nicenames(method))
 ```
 
 ```{r time, fig.width=11, fig.height= 3, eval = FALSE, echo=FALSE}
