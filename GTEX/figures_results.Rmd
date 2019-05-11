@@ -1,7 +1,7 @@
 ---
 title: "GTEx example: predicting age using gene expression data from 5 tissues"
 author: "Britta Velten"
-date: "13/07/2018"
+date: "11/05/2019"
 output:
   BiocStyle::html_document:
     toc: true
@@ -74,8 +74,8 @@ ggRMSE <- ggplot(df_RMSE, aes(x=method, y=RMSE, fill=method)) +
 ggRMSE
 ```
 
-## Penalty Factors (in graper and related methods)
-```{r hyperparameters_all, fig.width=12, fig.height=12}
+## Penalty Factors
+```{r hyperparameters_all, fig.width=12, fig.height=12, eval = FALSE, echo = FALSE}
 methods4comp <- c("graper","graper_SS","graper_FF", "IPFLasso", "GRridge")
 df_pf <- melt(lapply(resultList, function(l) {
   nms <- rownames(l$pf_mat)
@@ -130,14 +130,14 @@ ggPF <- plot_grid(gg1,gg2, rel_widths = c(1,1.25), nrow=1, align = "hv", axis = 
 ggPF
 ```
 
-# Joint plot
+## Joint plot
 ```{r joint, fig.widht=8, fig.height=9}
 plot_grid(ggRMSE, ggPF, ncol=1, labels = letters[1:2],
           label_size = 18, rel_heights = c(2,1))
 ```
 
 
-## Runtime
+# Runtime
 ```{r time}
 time_mat <- sapply(resultList, function(l) l$runtime)
 df_time <- melt(time_mat,
@@ -160,7 +160,7 @@ ggplot(df_time, aes(x=method, y=time, col=method)) +
 df_time %>% group_by(method) %>% dplyr::summarize(mean(time))
 ```
 
-SessionInfo
+# SessionInfo
 ```{r}
 sessionInfo()
 ```

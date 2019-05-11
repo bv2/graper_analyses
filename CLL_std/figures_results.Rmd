@@ -1,7 +1,7 @@
 ---
-title: "CLL example: predicting drug responses using 3 omics (drug/mRNA/meth)"
+title: "CLL example: predicting drug responses using 3 omics (drug/mRNA/meth) after standardization"
 author: "Britta Velten"
-date: "12/07/2018"
+date: "11/05/2019"
 output:
   BiocStyle::html_document:
     toc: true
