@@ -26,6 +26,7 @@ Load grid parameters
 load(file.path(datadir, "grid.RData"))
 # number of settings
 nrow(grid)
+head(grid)
 ```
 
 
