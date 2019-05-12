@@ -10,8 +10,8 @@ library(randomForest)
 library(parallel)
 source("../utils_eval.R", chdir = TRUE)
 
-# load data from the CLL study as provided in MOFAtools
-data("CLL_data", package="MOFAtools")
+# load data from the CLL study as provided in MOFAdata
+data("CLL_data", package="MOFAdata")
 
 # use methylation data, gene expression data and drug responses as predictors
 CLL_data <- CLL_data[1:3]
