@@ -10,28 +10,31 @@ library(randomForest)
 library(glmnet)
 source("../utils_eval.R", chdir = TRUE)
 
-# ## make grid
-# n_base <- 100
-# p_base <- 300
-# g_base <- 6
-# pi_low_base <- 0.2 
-# rho_base <- 0
-# tau_base <- 1
-#  
-# n <- seq(100,2000,200)
-# p <- seq(100,5000,200)
-# g <- seq(2,10,2)
-# 
-# grid <- expand.grid(n=n, p=p, g=g, pi_low=pi_low_base, rho = rho_base, tau =tau_base)
-# grid_n <- dplyr::filter(grid,  pi_low==pi_low_base, p==p_base, rho==rho_base, tau==tau_base, g == g_base)
-# grid_p <- dplyr::filter(grid,  pi_low==pi_low_base, n==n_base, rho==rho_base, tau==tau_base, g == g_base)
-# grid_g <- dplyr::filter(grid,  pi_low==pi_low_base, p==p_base, n==n_base, rho==rho_base, tau==tau_base)
-# grid <- rbind(grid_n,grid_p,grid_g)
-# nrow(grid)
-# 
-# save(grid, file = "data/grid.RData")
+if(!file.exists("data/grid.RData")) {
+    ## make grid
+    n_base <- 100
+    p_base <- 300
+    g_base <- 6
+    pi_low_base <- 0.2
+    rho_base <- 0
+    tau_base <- 1
+    
+    n <- seq(100,2000,200)
+    p <- seq(100,5000,200)
+    g <- seq(2,10,2)
+    
+    grid <- expand.grid(n=n, p=p, g=g, pi_low=pi_low_base, rho = rho_base, tau =tau_base)
+    grid_n <- dplyr::filter(grid,  pi_low==pi_low_base, p==p_base, rho==rho_base, tau==tau_base, g == g_base)
+    grid_p <- dplyr::filter(grid,  pi_low==pi_low_base, n==n_base, rho==rho_base, tau==tau_base, g == g_base)
+    grid_g <- dplyr::filter(grid,  pi_low==pi_low_base, p==p_base, n==n_base, rho==rho_base, tau==tau_base)
+    grid <- rbind(grid_n,grid_p,grid_g)
 
-load("data/grid.RData")
+    if(!dir.exists("data")) dir.create("data")
+    save(grid, file = "data/grid.RData")
+    
+} else {
+    load("data/grid.RData")
+}
 nrow(grid)
 
 # get setting parameters

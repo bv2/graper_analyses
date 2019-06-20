@@ -10,33 +10,38 @@ library(grpreg)
 library(randomForest)
 source("../utils_eval.R", chdir = TRUE)
 
-## make grid
-# n_base <- 100
-# pg_base <- 50
-# pi_low_base <- 0.2
-# rho_base <- 0
-# tau_base <- 1
-# 
-# n <- seq(20,500,20)
-# pg <- seq(10,200,10)
-# pi_low <- c(0.001, 0.01, seq(0.05,1,0.05))
-# rho <- seq(0, 0.9, 0.1)
-# tau <- c(0.01,0.1,1,10,100)
-# 
-# n_scenario <- length(n) + length(pg) + length(pi_low) +length(rho) +length(tau)
-# 
-# grid <- expand.grid(n=n, pg=pg, pi_low=pi_low, rho=rho, tau=tau)
-# grid_rho <- dplyr::filter(grid, n==n_base, pg==pg_base, pi_low==pi_low_base, tau==tau_base)
-# grid_n <- dplyr::filter(grid,  pi_low==pi_low_base, pg==pg_base, rho==rho_base, tau==tau_base)
-# grid_pg <- dplyr::filter(grid, n==n_base, rho==rho_base, pi_low==pi_low_base, tau==tau_base)
-# grid_pi <- dplyr::filter(grid, n==n_base, pg==pg_base, rho==rho_base, tau==tau_base)
-# grid_tau <- dplyr::filter(grid, n==n_base, pg==pg_base, rho==rho_base , pi_low==pi_low_base)
-# 
-# grid <- rbind(grid_rho,grid_n,grid_pg,grid_pi, grid_tau)
-# grid$pi_high <- pmin(1,grid$pi_low*1.5)
-# save(grid, file = "data/grid.RData")
-# 
-load("data/grid.RData")
+if(!file.exists("data/grid.RData")) {
+    # make grid
+    n_base <- 100
+    pg_base <- 50
+    pi_low_base <- 0.2
+    rho_base <- 0
+    tau_base <- 1
+    
+    n <- seq(20,500,20)
+    pg <- seq(10,200,10)
+    pi_low <- c(0.001, 0.01, seq(0.05,1,0.05))
+    rho <- seq(0, 0.9, 0.1)
+    tau <- c(0.01,0.1,1,10,100)
+    
+    n_scenario <- length(n) + length(pg) + length(pi_low) +length(rho) +length(tau)
+    
+    grid <- expand.grid(n=n, pg=pg, pi_low=pi_low, rho=rho, tau=tau)
+    grid_rho <- dplyr::filter(grid, n==n_base, pg==pg_base, pi_low==pi_low_base, tau==tau_base)
+    grid_n <- dplyr::filter(grid,  pi_low==pi_low_base, pg==pg_base, rho==rho_base, tau==tau_base)
+    grid_pg <- dplyr::filter(grid, n==n_base, rho==rho_base, pi_low==pi_low_base, tau==tau_base)
+    grid_pi <- dplyr::filter(grid, n==n_base, pg==pg_base, rho==rho_base, tau==tau_base)
+    grid_tau <- dplyr::filter(grid, n==n_base, pg==pg_base, rho==rho_base , pi_low==pi_low_base)
+    
+    grid <- rbind(grid_rho,grid_n,grid_pg,grid_pi, grid_tau)
+    grid$pi_high <- pmin(1,grid$pi_low*1.5)
+    
+    if(!dir.exists("data")) dir.create("data")
+    save(grid, file = "data/grid.RData")
+    
+} else {
+    load("data/grid.RData")
+}
 nrow(grid)
 
 # get setting parameters
